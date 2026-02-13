@@ -1,0 +1,330 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
+
+// --- CONFIGURATION ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'lexiquest-ultimate-v1';
+
+// --- SOUND ENGINE ---
+class SoundEngine {
+  constructor() { this.ctx = null; }
+  init() {
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  playTone(freq, type, duration, volume = 0.05) {
+    this.init();
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + duration);
+  }
+  correct() { this.playTone(523, 'sine', 0.2); setTimeout(() => this.playTone(659, 'sine', 0.2), 60); }
+  wrong() { this.playTone(110, 'sawtooth', 0.4, 0.08); }
+  tick() { this.playTone(880, 'sine', 0.05, 0.02); }
+  levelUp() { [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => this.playTone(f, 'triangle', 0.6, 0.05), i * 100)); }
+  gameOver() { this.playTone(220, 'sawtooth', 1, 0.1); setTimeout(() => this.playTone(164, 'sawtooth', 1, 0.1), 200); }
+}
+
+const sfx = new SoundEngine();
+
+// --- DATA ---
+const HEROES = [
+  { id: 'scholar', name: 'Sang Cendekia', icon: '🎓', skill: 'Progres x2', color: 'from-blue-600 to-indigo-700' },
+  { id: 'flash', name: 'Si Kilat', icon: '⚡', skill: '+3 Detik Waktu', color: 'from-amber-400 to-orange-600' },
+  { id: 'tank', name: 'Si Kebal', icon: '🛡️', skill: 'Nyawa +2 (Total 5)', color: 'from-rose-500 to-red-700' },
+];
+
+const WORDS = [
+  { id: "Matahari", en: "Sun" }, { id: "Bulan", en: "Moon" }, { id: "Bintang", en: "Star" },
+  { id: "Api", en: "Fire" }, { id: "Air", en: "Water" }, { id: "Bumi", en: "Earth" },
+  { id: "Makan", en: "Eat" }, { id: "Tidur", en: "Sleep" }, { id: "Lari", en: "Run" },
+  { id: "Kucing", en: "Cat" }, { id: "Anjing", en: "Dog" }, { id: "Burung", en: "Bird" },
+  { id: "Apel", en: "Apple" }, { id: "Buku", en: "Book" }, { id: "Mobil", en: "Car" }
+];
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState('landing');
+  const [hero, setHero] = useState(null);
+  const [gameState, setGameState] = useState({ lvl: 1, coins: 0, lives: 3, prog: 0, target: 5, combo: 0 });
+  const [currentQ, setCurrentQ] = useState(null);
+  const [options, setOptions] = useState([]);
+  const [timer, setTimer] = useState(10);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const timerRef = useRef(null);
+  const isTransitioning = useRef(false);
+
+  // Firebase Auth
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInAnonymously(auth);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (e) { console.error(e); }
+    };
+    initAuth();
+    const unsub = onAuthStateChanged(auth, setUser);
+    return () => unsub();
+  }, []);
+
+  // Leaderboard Listener
+  useEffect(() => {
+    if (!user) return;
+    const qColl = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
+    const unsub = onSnapshot(qColl, (snapshot) => {
+      const data = snapshot.docs.map(d => d.data());
+      setLeaderboard(data.sort((a, b) => b.score - a.score).slice(0, 5));
+    }, (err) => console.error(err));
+    return () => unsub();
+  }, [user]);
+
+  const startGame = (selectedHero) => {
+    sfx.init();
+    setHero(selectedHero);
+    const initialLives = selectedHero.id === 'tank' ? 5 : 3;
+    const initialData = { lvl: 1, coins: 0, lives: initialLives, prog: 0, target: 5, combo: 0 };
+    setGameState(initialData);
+    setView('game');
+    isTransitioning.current = false;
+    generateQuestion(1, selectedHero, initialData);
+  };
+
+  const generateQuestion = (level, currentHero, state) => {
+    const q = WORDS[Math.floor(Math.random() * WORDS.length)];
+    let opts = [q.en];
+    while (opts.length < 4) {
+      let r = WORDS[Math.floor(Math.random() * WORDS.length)].en;
+      if (!opts.includes(r)) opts.push(r);
+    }
+    setCurrentQ(q);
+    setOptions(opts.sort(() => Math.random() - 0.5));
+    
+    const baseTime = currentHero.id === 'flash' ? 13 : 10;
+    const timeLimit = Math.max(2.5, baseTime - (level * 0.4));
+    setTimer(timeLimit);
+    startTimer(timeLimit);
+    isTransitioning.current = false;
+  };
+
+  const startTimer = (limitValue) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    let currentLimit = limitValue;
+    timerRef.current = setInterval(() => {
+      currentLimit -= 0.1;
+      setTimer(currentLimit);
+      if (currentLimit <= 3 && currentLimit > 0) sfx.tick();
+      if (currentLimit <= 0) {
+        clearInterval(timerRef.current);
+        handleFail();
+      }
+    }, 100);
+  };
+
+  const handleAnswer = (ans) => {
+    if (isTransitioning.current) return;
+    clearInterval(timerRef.current);
+    isTransitioning.current = true;
+
+    if (ans === currentQ.en) {
+      sfx.correct();
+      const progGain = hero.id === 'scholar' ? 2 : 1;
+      const newProg = gameState.prog + progGain;
+      const newCoins = gameState.coins + 10 + (gameState.combo * 5);
+      
+      if (newProg >= gameState.target) {
+        sfx.levelUp();
+        const nextLvl = gameState.lvl + 1;
+        setGameState(prev => {
+          const ns = { ...prev, lvl: nextLvl, prog: 0, coins: newCoins, target: 5 + (nextLvl * 2), combo: prev.combo + 1 };
+          setTimeout(() => generateQuestion(nextLvl, hero, ns), 500);
+          return ns;
+        });
+      } else {
+        setGameState(prev => {
+          const ns = { ...prev, prog: newProg, coins: newCoins, combo: prev.combo + 1 };
+          setTimeout(() => generateQuestion(gameState.lvl, hero, ns), 250);
+          return ns;
+        });
+      }
+    } else {
+      handleFail();
+    }
+  };
+
+  const handleFail = () => {
+    sfx.wrong();
+    setGameState(prev => {
+      const newLives = Math.max(0, prev.lives - 1);
+      if (newLives <= 0) {
+        clearInterval(timerRef.current);
+        sfx.gameOver();
+        saveScore(prev.coins, prev.lvl);
+        setView('gameover');
+        return { ...prev, lives: 0 };
+      } else {
+        setTimeout(() => generateQuestion(prev.lvl, hero, { ...prev, lives: newLives }), 600);
+        return { ...prev, lives: newLives, combo: 0 };
+      }
+    });
+  };
+
+  const saveScore = async (finalCoins, finalLvl) => {
+    if (!user) return;
+    try {
+      const scoreRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', user.uid);
+      await setDoc(scoreRef, {
+        name: `User_${user.uid.substring(0, 4)}`,
+        score: finalCoins,
+        level: finalLvl,
+        hero: hero.name,
+        uid: user.uid,
+        timestamp: Date.now()
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#02040a] text-white font-sans flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-slate-900/60 backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl">
+        
+        {view === 'landing' && (
+          <div className="p-10 text-center flex flex-col items-center">
+            <div className="w-20 h-20 bg-indigo-500/20 rounded-full flex items-center justify-center mb-6 border border-indigo-500/30">
+              <span className="text-4xl">💎</span>
+            </div>
+            <h1 className="text-4xl font-black mb-1 tracking-tighter italic">LEXIQUEST</h1>
+            <p className="text-indigo-400 text-[10px] font-bold uppercase tracking-[0.3em] mb-10">Ultimate Fixed Edition</p>
+            
+            <button 
+              onClick={() => setView('select')}
+              className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-black text-lg shadow-xl shadow-indigo-900/40 transition-all active:scale-95 mb-10 border-b-4 border-indigo-800"
+            >
+              MULAI BERMAIN
+            </button>
+
+            <div className="w-full space-y-2">
+              <h3 className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-left px-2">Top Skor Dunia</h3>
+              {leaderboard.map((entry, i) => (
+                <div key={i} className="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5">
+                  <span className="text-xs font-bold text-slate-200">#{i+1} {entry.name}</span>
+                  <span className="text-xs text-amber-500 font-black">{entry.score} 💰</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {view === 'select' && (
+          <div className="p-10 space-y-4">
+            <h2 className="text-2xl font-black text-center mb-6 uppercase tracking-widest">Pilih Hero</h2>
+            {HEROES.map(h => (
+              <button 
+                key={h.id}
+                onClick={() => startGame(h)}
+                className={`w-full flex items-center p-5 rounded-[2rem] border border-white/10 bg-gradient-to-br ${h.color} hover:brightness-110 transition-all active:scale-95 group relative overflow-hidden`}
+              >
+                <span className="text-4xl mr-5 group-hover:scale-110 transition-transform relative z-10">{h.icon}</span>
+                <div className="text-left relative z-10">
+                  <div className="font-black text-xl leading-tight">{h.name}</div>
+                  <div className="text-[9px] font-bold uppercase opacity-80">{h.skill}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {view === 'game' && currentQ && (
+          <div className="p-8">
+            <div className="flex justify-between items-center mb-10">
+              <div className="text-center">
+                <div className="text-[9px] font-black text-slate-500 uppercase">Level</div>
+                <div className="text-indigo-400 font-black text-lg">{gameState.lvl}</div>
+              </div>
+              <div className="flex gap-1">
+                {Array.from({ length: hero.id === 'tank' ? 5 : 3 }).map((_, i) => (
+                  <span key={i} className={`text-xl transition-opacity duration-300 ${i < gameState.lives ? 'opacity-100' : 'opacity-20 grayscale'}`}>❤️</span>
+                ))}
+              </div>
+              <div className="text-center">
+                <div className="text-[9px] font-black text-slate-500 uppercase">Koin</div>
+                <div className="text-amber-500 font-black text-lg">{gameState.coins}</div>
+              </div>
+            </div>
+
+            <div className="text-center mb-12 relative h-32 flex flex-col justify-center">
+              <h3 className="text-5xl font-black tracking-tighter mb-4 text-white drop-shadow-md">{currentQ.id}</h3>
+              <div className="flex items-center justify-center gap-3 max-w-[200px] mx-auto w-full">
+                <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                  <div 
+                    className={`h-full transition-all duration-100 ${timer < 3 ? 'bg-rose-500' : 'bg-indigo-500'}`}
+                    style={{ width: `${(timer / (hero.id === 'flash' ? 13 : 10)) * 100}%` }}
+                  ></div>
+                </div>
+                <span className="text-[10px] font-mono font-bold w-10 text-slate-400">{Math.max(0, timer).toFixed(1)}s</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-10">
+              {options.map((opt, i) => (
+                <button
+                  key={i}
+                  disabled={isTransitioning.current}
+                  onClick={() => handleAnswer(opt)}
+                  className="py-6 bg-white text-slate-950 font-black rounded-[2rem] text-lg hover:bg-slate-200 transition-all active:scale-95 shadow-xl disabled:opacity-50"
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+
+            <div className="px-2">
+              <div className="flex justify-between text-[9px] font-black text-slate-500 uppercase mb-2">
+                <span>XP Progress</span>
+                <span>{gameState.prog} / {gameState.target}</span>
+              </div>
+              <div className="w-full h-1.5 bg-white/5 rounded-full">
+                <div 
+                  className="h-full bg-indigo-500 rounded-full transition-all duration-300" 
+                  style={{ width: `${(gameState.prog/gameState.target)*100}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {view === 'gameover' && (
+          <div className="p-12 text-center flex flex-col items-center">
+            <h2 className="text-4xl font-black mb-2 tracking-tighter text-rose-500">TAMAT</h2>
+            <p className="text-slate-500 text-xs font-bold mb-8 uppercase tracking-widest">Skor Koin Anda</p>
+            <div className="w-full bg-white/5 p-8 rounded-[3rem] border border-white/10 mb-8 backdrop-blur-md">
+              <div className="text-6xl font-black text-amber-500 drop-shadow-xl">{gameState.coins}</div>
+              <div className="mt-4 text-indigo-400 font-bold text-[10px] uppercase">Level: {gameState.lvl}</div>
+            </div>
+            <button 
+              onClick={() => setView('landing')}
+              className="w-full py-5 bg-white text-black font-black rounded-2xl text-lg shadow-2xl hover:bg-slate-200 transition-all active:scale-95"
+            >
+              MAIN LAGI
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
