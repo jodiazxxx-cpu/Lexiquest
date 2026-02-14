@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lexiquest - Elite Refined</title>
+    <title>Lexiquest Pro - Full Version</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -29,36 +29,40 @@
         }
 
         .glass-card {
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.92);
             backdrop-filter: blur(25px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
         }
 
-        .neon-blue { text-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
-        
-        /* Memperbaiki alignment judul agar pas di tengah */
-        .title-centering {
-            display: block;
+        /* PERBAIKAN JUDUL: Memastikan benar-benar di tengah */
+        .title-container {
             width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             text-align: center;
-            margin-left: 0;
-            padding-left: 0;
+        }
+
+        .neon-blue {
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
         }
 
         .timer-bar { transition: width 0.1s linear; }
 
-        /* Animasi melayang untuk poin */
         .floating-text {
             position: absolute;
-            animation: floatUp 1.2s ease-out forwards;
+            animation: floatUp 1s ease-out forwards;
             pointer-events: none;
             z-index: 100;
+            left: 50%;
+            transform: translateX(-50%);
         }
 
         @keyframes floatUp {
             0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
-            20% { opacity: 1; transform: translate(-50%, -20px) scale(1.1); }
-            100% { transform: translate(-50%, -80px) scale(1); opacity: 0; }
+            50% { opacity: 1; transform: translate(-50%, -40px) scale(1.2); }
+            100% { transform: translate(-50%, -100px) scale(1); opacity: 0; }
         }
 
         .shake { animation: shake 0.35s both; }
@@ -69,10 +73,10 @@
             40%, 60% { transform: translate3d(5px, 0, 0); }
         }
 
-        .btn-active {
+        .btn-press {
             background: white !important;
             color: black !important;
-            transform: scale(0.95);
+            transform: scale(0.92);
         }
     </style>
 </head>
@@ -83,8 +87,10 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // Background Stars Animation
         const initBg = () => {
             const canvas = document.getElementById('bg-canvas');
+            if(!canvas) return;
             const ctx = canvas.getContext('2d');
             let w, h, particles = [];
             const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
@@ -99,22 +105,53 @@
             animate();
         };
 
-        const WORDS = [
-            { id: "Matahari", en: "Sun" }, { id: "Bulan", en: "Moon" }, { id: "Pohon", en: "Tree" },
-            { id: "Mimpi", en: "Dream" }, { id: "Hujan", en: "Rain" }, { id: "Buku", en: "Book" },
-            { id: "Laut", en: "Ocean" }, { id: "Bintang", en: "Star" }, { id: "Gunung", en: "Mountain" }
+        // Sound Engine
+        class SoundEngine {
+            constructor() { this.ctx = null; }
+            init() { 
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+                if (this.ctx.state === 'suspended') this.ctx.resume(); 
+            }
+            play(freq, type, duration, vol = 0.05) {
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + duration);
+            }
+            correct() { this.play(880, 'sine', 0.2); }
+            wrong() { this.play(150, 'sawtooth', 0.4, 0.1); }
+            tick() { this.play(1200, 'sine', 0.05, 0.02); }
+        }
+
+        const sfx = new SoundEngine();
+
+        const HEROES = [
+            { id: 'scholar', name: 'Sage', icon: '🎓', desc: 'Bonus XP +2', color: 'from-blue-600 to-indigo-900' },
+            { id: 'flash', name: 'Volt', icon: '⚡', desc: 'Waktu +5 Detik', color: 'from-amber-500 to-orange-800' },
+            { id: 'tank', name: 'Aegis', icon: '🛡️', desc: 'Nyawa +2 Extra', color: 'from-rose-600 to-red-900' },
         ];
 
-        const OPTION_COLORS = [
-            "bg-gradient-to-br from-blue-600/40 to-blue-900/60 border-blue-500/30",
-            "bg-gradient-to-br from-purple-600/40 to-purple-900/60 border-purple-500/30",
-            "bg-gradient-to-br from-teal-600/40 to-teal-900/60 border-teal-500/30",
-            "bg-gradient-to-br from-indigo-600/40 to-indigo-900/60 border-indigo-500/30"
+        const WORDS = [
+            { id: "Matahari", en: "Sun" }, { id: "Bulan", en: "Moon" }, { id: "Bintang", en: "Star" },
+            { id: "Pohon", en: "Tree" }, { id: "Hujan", en: "Rain" }, { id: "Angin", en: "Wind" },
+            { id: "Lautan", en: "Ocean" }, { id: "Gunung", en: "Mountain" }, { id: "Api", en: "Fire" }
+        ];
+
+        const OPTION_THEMES = [
+            "from-blue-600/30 to-blue-900/60 border-blue-500/30",
+            "from-purple-600/30 to-purple-900/60 border-purple-500/30",
+            "from-emerald-600/30 to-emerald-900/60 border-emerald-500/30",
+            "from-orange-600/30 to-orange-900/60 border-orange-500/30"
         ];
 
         function App() {
             const [view, setView] = useState('landing');
-            const [gameState, setGameState] = useState({ score: 0, lives: 3, lvl: 1 });
+            const [hero, setHero] = useState(null);
+            const [gameState, setGameState] = useState({ score: 0, lives: 3, lvl: 1, xp: 0 });
             const [currentQ, setCurrentQ] = useState(null);
             const [options, setOptions] = useState([]);
             const [timer, setTimer] = useState(10);
@@ -128,16 +165,19 @@
             const spawnText = (text) => {
                 const id = Date.now();
                 setFloatingTexts(p => [...p, { id, text }]);
-                setTimeout(() => setFloatingTexts(p => p.filter(f => f.id !== id)), 1200);
+                setTimeout(() => setFloatingTexts(p => p.filter(f => f.id !== id)), 1000);
             };
 
-            const startGame = () => {
-                setGameState({ score: 0, lives: 3, lvl: 1 });
+            const startSession = (h) => {
+                sfx.init();
+                setHero(h);
+                const initialLives = h.id === 'tank' ? 5 : 3;
+                setGameState({ score: 0, lives: initialLives, lvl: 1, xp: 0 });
                 setView('game');
-                nextTask(1);
+                nextTask(1, h);
             };
 
-            const nextTask = (lvl) => {
+            const nextTask = (lvl, curHero) => {
                 const q = WORDS[Math.floor(Math.random() * WORDS.length)];
                 let opts = [q.en];
                 while(opts.length < 4) {
@@ -146,16 +186,18 @@
                 }
                 setCurrentQ(q);
                 setOptions(opts.sort(() => Math.random() - 0.5));
-                setTimer(10);
-                startTimer();
+                const timeLimit = curHero.id === 'flash' ? 15 : 10;
+                setTimer(timeLimit);
+                startTimer(timeLimit);
             };
 
-            const startTimer = () => {
+            const startTimer = (limit) => {
                 if (timerRef.current) clearInterval(timerRef.current);
-                let t = 10;
+                let t = limit;
                 timerRef.current = setInterval(() => {
                     t -= 0.1;
                     setTimer(t);
+                    if (t <= 3 && Math.floor(t * 10) % 10 === 0) sfx.tick();
                     if (t <= 0) { clearInterval(timerRef.current); handleWrong(); }
                 }, 100);
             };
@@ -167,9 +209,10 @@
 
                 setTimeout(() => {
                     if (ans === currentQ.en) {
+                        sfx.correct();
                         spawnText("+100");
-                        setGameState(p => ({ ...p, score: p.score + 100 }));
-                        nextTask(gameState.lvl);
+                        setGameState(p => ({ ...p, score: p.score + 100, xp: p.xp + (hero.id === 'scholar' ? 2 : 1) }));
+                        nextTask(gameState.lvl, hero);
                     } else {
                         handleWrong();
                     }
@@ -178,6 +221,7 @@
             };
 
             const handleWrong = () => {
+                sfx.wrong();
                 setIsShaking(true);
                 setTimeout(() => setIsShaking(false), 400);
                 setGameState(p => {
@@ -185,57 +229,74 @@
                     if (nl <= 0) setView('gameover');
                     return { ...p, lives: nl };
                 });
-                if (gameState.lives > 1) nextTask(gameState.lvl);
+                if (gameState.lives > 1) nextTask(gameState.lvl, hero);
             };
 
             return (
                 <div className={`min-h-screen flex items-center justify-center p-4 ${isShaking ? 'shake' : ''}`}>
-                    <div className="max-w-md w-full glass-card rounded-[3rem] overflow-hidden relative shadow-2xl flex flex-col border border-white/10">
+                    <div className="max-w-md w-full glass-card rounded-[2.5rem] overflow-hidden relative shadow-2xl flex flex-col border border-white/10">
                         
                         {floatingTexts.map(f => (
-                            <div key={f.id} className="floating-text orbitron font-black text-emerald-400 text-xl" style={{ left: '50%', top: '40%' }}>
+                            <div key={f.id} className="floating-text orbitron font-black text-emerald-400 text-2xl">
                                 {f.text}
                             </div>
                         ))}
 
                         {view === 'landing' && (
-                            <div className="p-12 text-center space-y-12">
-                                <div className="space-y-4">
-                                    <p className="text-[10px] tracking-[0.5em] text-blue-500 font-bold uppercase opacity-60">System Ready</p>
-                                    <h1 className="text-5xl font-black orbitron neon-blue title-centering leading-none">
-                                        LEXIQUEST
-                                    </h1>
-                                    <div className="h-0.5 w-16 bg-blue-500/40 mx-auto rounded-full"></div>
+                            <div className="p-12 text-center space-y-12 py-20">
+                                <div className="space-y-2">
+                                    <p className="text-[10px] tracking-[0.6em] text-blue-500 font-bold uppercase opacity-60">Neural Uplink Ready</p>
+                                    <div className="title-container">
+                                        <h1 className="text-5xl font-black orbitron neon-blue leading-tight tracking-tight">
+                                            LEXIQUEST
+                                        </h1>
+                                    </div>
+                                    <div className="h-0.5 w-20 bg-blue-500/30 mx-auto rounded-full mt-2"></div>
                                 </div>
-                                <button onClick={startGame} className="w-full py-5 bg-blue-600 rounded-2xl font-black orbitron tracking-widest active:scale-95 transition-all shadow-lg shadow-blue-900/40">
-                                    MULAI GAME
+                                <button onClick={() => setView('select')} className="w-full py-5 bg-blue-600 rounded-2xl font-black orbitron tracking-widest active:scale-95 transition-all shadow-lg shadow-blue-900/40">
+                                    INISIALISASI
                                 </button>
-                                <p className="text-[10px] text-slate-500 font-mono">v4.0.0_STABLE_RELEASE</p>
+                                <p className="text-[9px] text-slate-500 font-mono tracking-widest">ENCRYPTION: AES-256 ACTIVE</p>
+                            </div>
+                        )}
+
+                        {view === 'select' && (
+                            <div className="p-8 space-y-4">
+                                <h2 className="orbitron text-center text-lg font-bold mb-4">PILIH AVATAR</h2>
+                                {HEROES.map(h => (
+                                    <button key={h.id} onClick={() => startSession(h)} className={`w-full flex items-center p-5 rounded-3xl bg-gradient-to-br ${h.color} border border-white/10 active:scale-95 transition-all shadow-xl group`}>
+                                        <span className="text-4xl mr-5 group-hover:scale-110 transition-transform">{h.icon}</span>
+                                        <div className="text-left">
+                                            <p className="font-black orbitron text-white">{h.name}</p>
+                                            <p className="text-[9px] font-bold opacity-70 uppercase tracking-tighter">{h.desc}</p>
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
                         )}
 
                         {view === 'game' && currentQ && (
                             <div className="p-8 space-y-8">
-                                <div className="flex justify-between items-center bg-black/30 p-4 rounded-2xl border border-white/5 font-mono text-xs">
+                                <div className="flex justify-between items-center bg-black/40 p-4 rounded-2xl border border-white/5 font-mono text-xs">
                                     <div className="text-left">
-                                        <p className="text-slate-500 mb-1 uppercase tracking-tighter">Vitality</p>
+                                        <p className="text-slate-500 mb-1 text-[8px] uppercase">Integrity</p>
                                         <div className="flex gap-1">
-                                            {[...Array(3)].map((_, i) => (
+                                            {[...Array(hero.id === 'tank' ? 5 : 3)].map((_, i) => (
                                                 <div key={i} className={`w-2.5 h-2.5 rounded-full ${i < gameState.lives ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-slate-800'}`}></div>
                                             ))}
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-slate-500 mb-1 uppercase tracking-tighter">Credits</p>
+                                        <p className="text-slate-500 mb-1 text-[8px] uppercase">Credits</p>
                                         <p className="font-black orbitron text-emerald-400 text-base">{gameState.score}</p>
                                     </div>
                                 </div>
 
                                 <div className="text-center space-y-4">
-                                    <p className="text-[10px] text-blue-500/60 font-black tracking-widest uppercase">Target Transmisi</p>
+                                    <p className="text-[10px] text-blue-500/60 font-black tracking-widest uppercase">Translate Transmission</p>
                                     <h3 className="text-4xl font-black orbitron neon-blue uppercase tracking-tight">{currentQ.id}</h3>
                                     <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                                        <div className={`h-full timer-bar ${timer < 3 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${(timer / 10) * 100}%` }}></div>
+                                        <div className={`h-full timer-bar ${timer < 3 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${(timer / (hero.id === 'flash' ? 15 : 10)) * 100}%` }}></div>
                                     </div>
                                 </div>
 
@@ -244,22 +305,26 @@
                                         <button 
                                             key={i} 
                                             onClick={() => handleAnswer(opt, i)} 
-                                            className={`py-6 rounded-2xl orbitron text-xs font-bold transition-all border
-                                                ${selectedId === i ? 'btn-active' : `${OPTION_COLORS[i]} hover:brightness-125`}
-                                                active:scale-95 shadow-lg`}
+                                            className={`py-6 rounded-2xl orbitron text-xs font-bold transition-all border bg-gradient-to-br
+                                                ${selectedId === i ? 'btn-press' : `${OPTION_THEMES[i]}`}
+                                                active:scale-95 shadow-lg uppercase`}
                                         >
                                             {opt}
                                         </button>
                                     ))}
                                 </div>
+
+                                <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
+                                    <div className="h-full bg-blue-500 transition-all duration-700" style={{ width: `${(gameState.xp % 10) * 10}%` }}></div>
+                                </div>
                             </div>
                         )}
 
                         {view === 'gameover' && (
-                            <div className="p-12 text-center space-y-8">
-                                <h2 className="text-3xl font-black orbitron text-red-500">KONEKSI TERPUTUS</h2>
-                                <div className="p-8 bg-black/40 rounded-3xl border border-white/10">
-                                    <p className="text-[10px] text-slate-500 uppercase font-black mb-2 tracking-widest">Skor Akhir</p>
+                            <div className="p-12 text-center space-y-8 py-16">
+                                <h2 className="text-3xl font-black orbitron text-red-500">SYSTEM FAILURE</h2>
+                                <div className="p-10 bg-black/40 rounded-[2.5rem] border border-white/10">
+                                    <p className="text-[10px] text-slate-500 uppercase font-black mb-2">Final Credits</p>
                                     <p className="text-6xl font-black text-amber-500 orbitron">{gameState.score}</p>
                                 </div>
                                 <button onClick={() => setView('landing')} className="w-full py-5 bg-white text-black rounded-2xl orbitron font-black active:scale-95 transition-all">
