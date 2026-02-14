@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lexiquest Pro - Ultimate Plus</title>
+    <title>Lexiquest Pro - Fixed Edition</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -13,7 +13,7 @@
         
         body { 
             font-family: 'Fira Code', monospace; 
-            background-color: #030712; 
+            background-color: #020617; 
             color: white; 
             overflow: hidden; 
             margin: 0;
@@ -25,50 +25,40 @@
         #bg-canvas {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1; opacity: 0.5;
+            z-index: -1; opacity: 0.4;
         }
 
         .glass-card {
             background: rgba(10, 15, 30, 0.95);
-            backdrop-filter: blur(30px);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(59, 130, 246, 0.2);
-            width: 92%;
-            max-width: 390px;
+            width: 90%;
+            max-width: 380px;
         }
 
         .neon-title {
-            font-size: clamp(2.2rem, 11vw, 3.8rem);
+            font-size: clamp(2rem, 10vw, 3.5rem);
             font-weight: 900;
             text-transform: uppercase;
             color: #fff;
-            text-shadow: 0 0 20px rgba(59, 130, 246, 0.7);
+            text-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
             white-space: nowrap;
-            line-height: 1;
         }
 
         .timer-bar { transition: width 0.1s linear; }
 
-        .combo-badge {
-            animation: bounce-scale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        @keyframes bounce-scale {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
         .floating-text {
             position: absolute;
-            animation: floatUp 1.2s ease-out forwards;
+            animation: floatUp 1s ease-out forwards;
             pointer-events: none;
             z-index: 100;
             left: 50%;
         }
 
         @keyframes floatUp {
-            0% { transform: translate(-50%, 0) scale(0.8); opacity: 0; }
-            20% { opacity: 1; transform: translate(-50%, -30px) scale(1.3); }
-            100% { transform: translate(-50%, -120px) scale(1); opacity: 0; }
+            0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+            50% { opacity: 1; transform: translate(-50%, -40px) scale(1.2); }
+            100% { transform: translate(-50%, -100px) scale(1); opacity: 0; }
         }
 
         .skill-ready-pulse {
@@ -76,32 +66,17 @@
         }
 
         @keyframes pulse-aura {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); }
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
             70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
             100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
         }
 
-        .shake { animation: heavy-shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes heavy-shake {
-            10%, 90% { transform: translate3d(-2px, 0, 0); }
-            20%, 80% { transform: translate3d(4px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
-            40%, 60% { transform: translate3d(6px, 0, 0); }
-        }
-
-        .scanline {
-            width: 100%;
-            height: 2px;
-            background: rgba(59, 130, 246, 0.1);
-            position: absolute;
-            top: 0;
-            animation: scan 4s linear infinite;
-            z-index: 10;
-            pointer-events: none;
-        }
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
         }
     </style>
 </head>
@@ -110,7 +85,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
 
         const initBg = () => {
             const canvas = document.getElementById('bg-canvas');
@@ -120,7 +95,7 @@
             const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
             window.addEventListener('resize', resize);
             resize();
-            for(let i=0; i<60; i++) stars.push({ x: Math.random()*w, y: Math.random()*h, r: Math.random()*1.5, d: Math.random()*0.5+0.2 });
+            for(let i=0; i<50; i++) stars.push({ x: Math.random()*w, y: Math.random()*h, r: Math.random()*1.5, d: Math.random()*0.5+0.1 });
             const draw = () => {
                 ctx.clearRect(0,0,w,h);
                 ctx.fillStyle = "#3b82f6";
@@ -135,12 +110,10 @@
 
         class SoundEngine {
             constructor() { this.ctx = null; }
-            init() { 
-                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-                if (this.ctx.state === 'suspended') this.ctx.resume(); 
-            }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
             play(freq, type, duration, vol = 0.05) {
                 this.init();
+                if(this.ctx.state === 'suspended') this.ctx.resume();
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
                 osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
@@ -149,35 +122,29 @@
                 osc.connect(gain); gain.connect(this.ctx.destination);
                 osc.start(); osc.stop(this.ctx.currentTime + duration);
             }
-            correct(combo) { this.play(440 + (combo * 40), 'sine', 0.2); }
-            wrong() { this.play(120, 'sawtooth', 0.5, 0.1); }
-            skill() { 
-                this.play(200, 'square', 0.1); 
-                setTimeout(() => this.play(400, 'square', 0.1), 100);
-                setTimeout(() => this.play(800, 'square', 0.2), 200);
-            }
-            tick() { this.play(1000, 'sine', 0.03, 0.01); }
+            correct() { this.play(660, 'sine', 0.2); }
+            wrong() { this.play(150, 'sawtooth', 0.4, 0.1); }
+            skill() { this.play(440, 'square', 0.3); }
         }
 
         const sfx = new SoundEngine();
 
-        const HEROES = [
-            { id: 'scholar', name: 'Sage', icon: '🎓', skill: 'Analysis', desc: 'Eliminasi 2 Opsi Salah', color: 'from-cyan-500 to-blue-700' },
-            { id: 'flash', name: 'Volt', icon: '⚡', skill: 'Overclock', desc: 'Freeze Waktu 6 Detik', color: 'from-yellow-400 to-orange-700' },
-            { id: 'tank', name: 'Aegis', icon: '🛡️', skill: 'Hardened', desc: 'Blokir 1 Kesalahan', color: 'from-red-500 to-rose-800' },
-        ];
-
         const WORDS = [
             { id: "Matahari", en: "Sun" }, { id: "Bulan", en: "Moon" }, { id: "Bintang", en: "Star" },
-            { id: "Pohon", en: "Tree" }, { id: "Hujan", en: "Rain" }, { id: "Angin", en: "Wind" },
-            { id: "Laut", en: "Ocean" }, { id: "Gunung", en: "Mountain" }, { id: "Api", en: "Fire" },
-            { id: "Tanah", en: "Earth" }, { id: "Langit", en: "Sky" }, { id: "Awan", en: "Cloud" }
+            { id: "Api", en: "Fire" }, { id: "Air", en: "Water" }, { id: "Tanah", en: "Earth" },
+            { id: "Langit", en: "Sky" }, { id: "Hutan", en: "Forest" }, { id: "Lautan", en: "Ocean" }
+        ];
+
+        const HEROES = [
+            { id: 'scholar', name: 'Sage', icon: '🎓', skill: 'Analysis', desc: 'Hapus 2 Opsi Salah', color: 'from-blue-600 to-indigo-900' },
+            { id: 'flash', name: 'Volt', icon: '⚡', skill: 'Freeze', desc: 'Hentikan Waktu 5dtk', color: 'from-yellow-500 to-orange-700' },
+            { id: 'tank', name: 'Aegis', icon: '🛡️', skill: 'Shield', desc: 'Kebal 1 Kesalahan', color: 'from-rose-600 to-red-900' },
         ];
 
         function App() {
             const [view, setView] = useState('landing');
             const [hero, setHero] = useState(null);
-            const [gameState, setGameState] = useState({ score: 0, lives: 3, xp: 0, combo: 0, skillReady: false, shieldActive: false, timeFrozen: false });
+            const [gameState, setGameState] = useState({ score: 0, lives: 3, xp: 0, skillReady: false, shieldActive: false, timeFrozen: false });
             const [currentQ, setCurrentQ] = useState(null);
             const [options, setOptions] = useState([]);
             const [disabledOpts, setDisabledOpts] = useState([]);
@@ -185,103 +152,102 @@
             const [selectedIdx, setSelectedIdx] = useState(null);
             const [isShaking, setIsShaking] = useState(false);
             const [floatingTexts, setFloatingTexts] = useState([]);
+            const [isTransitioning, setIsTransitioning] = useState(false);
             const timerRef = useRef(null);
 
-            useEffect(() => { initBg(); }, []);
+            useEffect(() => { initBg(); return () => clearInterval(timerRef.current); }, []);
 
             const spawnText = (text, color = "text-blue-400") => {
                 const id = Date.now();
                 setFloatingTexts(p => [...p, { id, text, color }]);
-                setTimeout(() => setFloatingTexts(p => p.filter(f => f.id !== id)), 1200);
+                setTimeout(() => setFloatingTexts(p => p.filter(f => f.id !== id)), 1000);
             };
 
-            const startSession = (h) => {
-                sfx.init();
-                setHero(h);
-                setGameState({ score: 0, lives: h.id === 'tank' ? 5 : 3, xp: 0, combo: 0, skillReady: false, shieldActive: false, timeFrozen: false });
-                setView('game');
-                generateNewQuestion(h);
-            };
-
-            const generateNewQuestion = (curHero) => {
+            const generateQuestion = useCallback(() => {
                 const q = WORDS[Math.floor(Math.random() * WORDS.length)];
                 let opts = [q.en];
                 while(opts.length < 4) {
                     let r = WORDS[Math.floor(Math.random() * WORDS.length)].en;
                     if(!opts.includes(r)) opts.push(r);
                 }
+                
+                // RESET SEMUA STATE SOAL
                 setCurrentQ(q);
                 setOptions(opts.sort(() => Math.random() - 0.5));
                 setDisabledOpts([]);
-                setGameState(prev => ({ ...prev, timeFrozen: false }));
+                setSelectedIdx(null);
+                setIsTransitioning(false);
+                setGameState(p => ({ ...p, timeFrozen: false }));
+                
                 setTimer(10);
-                startTimer();
-            };
-
-            const startTimer = () => {
                 if (timerRef.current) clearInterval(timerRef.current);
                 timerRef.current = setInterval(() => {
                     setGameState(p => {
                         if (p.timeFrozen) return p;
-                        const nt = (Math.round((timer - 0.1) * 10) / 10);
-                        setTimer(nt);
-                        if (nt <= 3 && Math.floor(nt * 10) % 10 === 0) sfx.tick();
-                        if (nt <= 0) { clearInterval(timerRef.current); onTimeOut(); }
+                        setTimer(t => {
+                            const nt = Math.max(0, t - 0.1);
+                            if (nt <= 0) {
+                                clearInterval(timerRef.current);
+                                handleWrong();
+                            }
+                            return nt;
+                        });
                         return p;
                     });
                 }, 100);
+            }, []);
+
+            const startSession = (h) => {
+                sfx.init();
+                setHero(h);
+                setGameState({ score: 0, lives: h.id === 'tank' ? 5 : 3, xp: 0, skillReady: false, shieldActive: false, timeFrozen: false });
+                setView('game');
+                setTimeout(() => generateQuestion(), 100);
             };
 
-            const onTimeOut = () => handleWrong();
-
             const useSkill = () => {
-                if (!gameState.skillReady) return;
+                if (!gameState.skillReady || isTransitioning) return;
                 sfx.skill();
                 setGameState(p => ({ ...p, skillReady: false, xp: 0 }));
-                spawnText(`ACTIVATED: ${hero.skill}`, "text-yellow-400");
+                spawnText("SKILL AKTIF!", "text-yellow-400");
 
                 if (hero.id === 'scholar') {
                     const wrong = options.filter(o => o !== currentQ.en).slice(0, 2);
                     setDisabledOpts(wrong);
                 } else if (hero.id === 'flash') {
                     setGameState(p => ({ ...p, timeFrozen: true }));
-                    setTimeout(() => setGameState(p => ({ ...p, timeFrozen: false })), 6000);
+                    setTimeout(() => setGameState(p => ({ ...p, timeFrozen: false })), 5000);
                 } else if (hero.id === 'tank') {
                     setGameState(p => ({ ...p, shieldActive: true }));
                 }
             };
 
             const handleAnswer = (ans, idx) => {
-                if (selectedIdx !== null || disabledOpts.includes(ans)) return;
+                if (isTransitioning || disabledOpts.includes(ans) || selectedIdx !== null) return;
+                
+                setIsTransitioning(true);
                 setSelectedIdx(idx);
                 clearInterval(timerRef.current);
 
-                setTimeout(() => {
-                    if (ans === currentQ.en) {
-                        const newCombo = gameState.combo + 1;
-                        const comboBonus = Math.min(newCombo * 10, 100);
-                        sfx.correct(newCombo);
-                        spawnText(`+${100 + comboBonus}`, "text-emerald-400");
-                        if(newCombo > 1) spawnText(`COMBO X${newCombo}!`, "text-yellow-400");
-                        
-                        setGameState(p => {
-                            const newXp = p.xp + 1;
-                            const isReady = newXp >= 3;
-                            if (isReady && !p.skillReady) spawnText("SKILL CHARGED", "text-cyan-400");
-                            return { ...p, score: p.score + 100 + comboBonus, xp: isReady ? 3 : newXp, skillReady: isReady || p.skillReady, combo: newCombo };
-                        });
-                        generateNewQuestion(hero);
+                if (ans === currentQ.en) {
+                    sfx.correct();
+                    spawnText("+100", "text-emerald-400");
+                    setGameState(p => {
+                        const newXp = p.xp + 1;
+                        const isReady = newXp >= 3;
+                        if (isReady && !p.skillReady) spawnText("SKILL READY!", "text-cyan-400");
+                        return { ...p, score: p.score + 100, xp: isReady ? 3 : newXp, skillReady: isReady || p.skillReady };
+                    });
+                    setTimeout(() => generateQuestion(), 600);
+                } else {
+                    if (gameState.shieldActive) {
+                        spawnText("SHIELD BLOCKED!", "text-rose-400");
+                        setGameState(p => ({ ...p, shieldActive: false }));
+                        setTimeout(() => generateQuestion(), 600);
                     } else {
-                        if (gameState.shieldActive) {
-                            spawnText("SHIELD DEPLETED", "text-red-400");
-                            setGameState(p => ({ ...p, shieldActive: false, combo: 0 }));
-                            generateNewQuestion(hero);
-                        } else {
-                            handleWrong();
-                        }
+                        handleWrong();
                     }
-                    setSelectedIdx(null);
-                }, 300);
+                }
             };
 
             const handleWrong = () => {
@@ -290,23 +256,18 @@
                 setTimeout(() => setIsShaking(false), 400);
                 setGameState(p => {
                     const nl = p.lives - 1;
-                    if (nl <= 0) setView('gameover');
-                    return { ...p, lives: nl, xp: 0, combo: 0 };
+                    if (nl <= 0) {
+                        setView('gameover');
+                        return { ...p, lives: 0 };
+                    }
+                    setTimeout(() => generateQuestion(), 800);
+                    return { ...p, lives: nl, xp: 0 };
                 });
-                if (gameState.lives > 1) generateNewQuestion(hero);
-            };
-
-            const getRank = (score) => {
-                if (score > 5000) return { r: "RANK S", c: "text-yellow-400" };
-                if (score > 3000) return { r: "RANK A", c: "text-purple-400" };
-                if (score > 1500) return { r: "RANK B", c: "text-blue-400" };
-                return { r: "RANK C", c: "text-slate-400" };
             };
 
             return (
-                <div className={`min-h-screen flex items-center justify-center p-4 relative ${isShaking ? 'shake' : ''}`}>
-                    <div className="scanline"></div>
-                    <div className="glass-card rounded-[2.8rem] overflow-hidden relative shadow-[0_0_60px_rgba(0,0,0,0.8)] border border-white/5 p-1">
+                <div className={`min-h-screen flex items-center justify-center p-4 ${isShaking ? 'shake' : ''}`}>
+                    <div className="glass-card rounded-[2.5rem] overflow-hidden relative shadow-2xl flex flex-col border border-white/10 p-1">
                         
                         {floatingTexts.map(f => (
                             <div key={f.id} className={`floating-text orbitron font-black ${f.color} text-2xl drop-shadow-lg`}>
@@ -315,42 +276,29 @@
                         ))}
 
                         {view === 'landing' && (
-                            <div className="p-10 text-center space-y-12 flex flex-col items-center py-16">
+                            <div className="p-10 text-center space-y-12 py-16 flex flex-col items-center">
                                 <div className="space-y-4">
-                                    <p className="text-[10px] tracking-[0.5em] text-blue-500 font-bold uppercase opacity-80 animate-pulse">Neural Link Established</p>
+                                    <p className="text-[10px] tracking-[0.5em] text-blue-500 font-bold uppercase opacity-80">System Online</p>
                                     <h1 className="orbitron neon-title italic">
                                         LEXI<span className="text-blue-500">QUEST</span>
                                     </h1>
-                                    <div className="h-0.5 w-14 bg-gradient-to-r from-transparent via-blue-500 to-transparent mx-auto"></div>
-                                    <p className="text-[9px] text-slate-500 tracking-[0.3em] font-bold">ULTIMATE EDITION PLUS</p>
+                                    <p className="text-[9px] text-slate-500 tracking-[0.2em] font-bold">ULTIMATE EDITION</p>
                                 </div>
-
-                                <div className="w-full space-y-4 pt-4">
-                                    <div className="text-[9px] font-mono text-cyan-500/80 text-left space-y-1 bg-black/40 p-5 rounded-2xl border border-blue-500/10 backdrop-blur-md">
-                                        <p className="animate-pulse">&gt; SYS_LOAD: COMPLETE</p>
-                                        <p>&gt; ENCRYPTION: ACTIVE</p>
-                                        <p>&gt; READY TO SYNC_</p>
-                                    </div>
-                                    <button onClick={() => setView('select')} className="w-full py-5 bg-gradient-to-r from-blue-700 to-blue-500 rounded-2xl font-black orbitron text-sm tracking-widest uppercase shadow-[0_10px_30px_rgba(37,99,235,0.4)] hover:brightness-110 active:scale-95 transition-all">
-                                        START PROTOCOL
-                                    </button>
-                                </div>
-                                <p className="text-[8px] text-slate-600 font-bold tracking-tighter opacity-50">BY GEMINI NEURAL SYSTEMS v3.5</p>
+                                <button onClick={() => setView('select')} className="w-full py-5 bg-blue-600 rounded-2xl font-black orbitron text-sm tracking-widest uppercase shadow-lg shadow-blue-900/40 active:scale-95 transition-all">
+                                    START
+                                </button>
                             </div>
                         )}
 
                         {view === 'select' && (
-                            <div className="p-8 space-y-5 py-12">
-                                <div className="text-center space-y-1">
-                                    <h2 className="orbitron text-sm tracking-[0.2em] font-bold text-blue-400 uppercase">Pilih Spesialis</h2>
-                                    <p className="text-[8px] text-slate-500 uppercase font-bold tracking-widest">Pilih gaya bermainmu</p>
-                                </div>
+                            <div className="p-8 space-y-4 py-12">
+                                <h2 className="orbitron text-center text-xs tracking-widest font-bold mb-4 text-blue-400 uppercase">Pilih Agent</h2>
                                 {HEROES.map(h => (
-                                    <button key={h.id} onClick={() => startSession(h)} className={`w-full flex items-center p-5 rounded-[2rem] bg-gradient-to-br ${h.color} border border-white/10 active:scale-95 transition-all shadow-xl group hover:brightness-110`}>
-                                        <span className="text-4xl mr-5 group-hover:scale-125 transition-transform duration-300 drop-shadow-lg">{h.icon}</span>
+                                    <button key={h.id} onClick={() => startSession(h)} className={`w-full flex items-center p-5 rounded-3xl bg-gradient-to-br ${h.color} border border-white/10 active:scale-95 transition-all shadow-xl`}>
+                                        <span className="text-4xl mr-5">{h.icon}</span>
                                         <div className="text-left">
-                                            <p className="font-black orbitron text-white uppercase text-sm tracking-wide">{h.name}</p>
-                                            <p className="text-[9px] font-bold text-white/70 uppercase tracking-tighter">{h.desc}</p>
+                                            <p className="font-black orbitron text-white uppercase text-sm">{h.name}</p>
+                                            <p className="text-[9px] font-bold opacity-70 uppercase">{h.desc}</p>
                                         </div>
                                     </button>
                                 ))}
@@ -359,27 +307,25 @@
 
                         {view === 'game' && currentQ && (
                             <div className="p-8 space-y-6">
-                                <div className="flex justify-between items-center bg-black/50 p-4 rounded-2xl border border-white/5 backdrop-blur-md">
+                                <div className="flex justify-between items-center bg-black/40 p-4 rounded-2xl border border-white/5 backdrop-blur-md">
                                     <div className="text-left">
-                                        <p className="text-slate-500 mb-1 text-[8px] uppercase font-black tracking-tighter">Vitality</p>
-                                        <div className="flex gap-1.5">
+                                        <p className="text-slate-500 mb-1 text-[8px] uppercase font-black">HP</p>
+                                        <div className="flex gap-1">
                                             {[...Array(hero.id === 'tank' ? 5 : 3)].map((_, i) => (
-                                                <div key={i} className={`w-3 h-3 rounded-full ${i < gameState.lives ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.7)]' : 'bg-slate-800'}`}></div>
+                                                <div key={i} className={`w-2.5 h-2.5 rounded-full ${i < gameState.lives ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-slate-800'}`}></div>
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-end">
-                                        <p className="text-slate-500 mb-0.5 text-[8px] uppercase font-black tracking-tighter">Credits</p>
-                                        <p className="font-black orbitron text-emerald-400 text-xl leading-none">{gameState.score}</p>
-                                        {gameState.combo > 1 && <p className="text-[9px] font-bold text-yellow-400 combo-badge mt-1 uppercase italic">Combo x{gameState.combo}</p>}
+                                    <div className="text-right">
+                                        <p className="text-slate-500 mb-1 text-[8px] uppercase font-black">Score</p>
+                                        <p className="font-black orbitron text-emerald-400 text-lg">{gameState.score}</p>
                                     </div>
                                 </div>
 
-                                <div className="text-center space-y-4 relative py-4">
-                                    {gameState.shieldActive && <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] bg-red-600 px-3 py-1 rounded-full font-black animate-bounce shadow-lg shadow-red-900/40 border border-white/20">🛡️ AEGIS SHIELD UP</div>}
-                                    <p className="text-[10px] text-blue-500 font-black tracking-[0.2em] uppercase opacity-60">Neural Translation</p>
-                                    <h3 className="text-4xl font-black orbitron text-white uppercase tracking-tight drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]">{currentQ.id}</h3>
-                                    <div className="w-full h-1.5 bg-slate-900/80 rounded-full overflow-hidden border border-white/5">
+                                <div className="text-center space-y-4 relative">
+                                    {gameState.shieldActive && <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] bg-rose-500 px-3 py-0.5 rounded-full font-bold animate-pulse">🛡️ SHIELD ACTIVE</div>}
+                                    <h3 className="text-4xl font-black orbitron text-white uppercase tracking-tight">{currentQ.id}</h3>
+                                    <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
                                         <div className={`h-full timer-bar ${gameState.timeFrozen ? 'bg-cyan-400 animate-pulse' : timer < 3 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${(timer / 10) * 100}%` }}></div>
                                     </div>
                                 </div>
@@ -387,12 +333,12 @@
                                 <div className="grid grid-cols-2 gap-4">
                                     {options.map((opt, i) => (
                                         <button 
-                                            key={i} 
+                                            key={`${currentQ.id}-${i}`} 
                                             onClick={() => handleAnswer(opt, i)} 
-                                            disabled={disabledOpts.includes(opt)}
-                                            className={`py-7 rounded-[1.8rem] orbitron text-[11px] font-black transition-all border uppercase shadow-xl
-                                                ${disabledOpts.includes(opt) ? 'opacity-5 scale-90 grayscale' : selectedIdx === i ? 'bg-white text-black border-white scale-95' : 'bg-slate-900/40 border-white/5 hover:border-blue-500/50 hover:bg-slate-800/60 text-white'}
-                                                active:scale-90`}
+                                            disabled={isTransitioning || disabledOpts.includes(opt)}
+                                            className={`py-6 rounded-2xl orbitron text-[10px] font-black transition-all border uppercase
+                                                ${disabledOpts.includes(opt) ? 'opacity-0 scale-90 pointer-events-none' : selectedIdx === i ? 'bg-white text-black border-white' : 'bg-slate-900/60 border-white/10 text-white'}
+                                                active:scale-95`}
                                         >
                                             {opt}
                                         </button>
@@ -402,18 +348,16 @@
                                 <div className="space-y-3 pt-2">
                                     <button 
                                         onClick={useSkill}
-                                        disabled={!gameState.skillReady}
-                                        className={`w-full py-4 rounded-2xl orbitron font-black text-xs transition-all flex items-center justify-center gap-3 shadow-lg
-                                            ${gameState.skillReady ? `bg-gradient-to-r ${hero.color} skill-ready-pulse text-white border border-white/20` : 'bg-slate-950 text-slate-700 border border-white/5 opacity-40 grayscale'}`}
+                                        disabled={!gameState.skillReady || isTransitioning}
+                                        className={`w-full py-4 rounded-xl orbitron font-black text-xs transition-all flex items-center justify-center gap-3
+                                            ${gameState.skillReady ? `bg-gradient-to-r ${hero.color} skill-ready-pulse text-white` : 'bg-slate-900 text-slate-700 border border-white/5 opacity-40'}`}
                                     >
-                                        <span className="text-xl">{hero.icon}</span>
-                                        <span className="tracking-widest uppercase">{gameState.skillReady ? `${hero.skill} READY` : 'CALIBRATING...'}</span>
+                                        <span>{hero.icon}</span>
+                                        <span>{gameState.skillReady ? `${hero.skill} READY` : 'CHARGING...'}</span>
                                     </button>
 
-                                    <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden flex">
-                                        {[...Array(3)].map((_, i) => (
-                                            <div key={i} className={`h-full flex-1 border-r border-black/50 transition-all duration-700 ${i < gameState.xp ? 'bg-amber-400 shadow-[0_0_8px_orange]' : 'bg-slate-900'}`}></div>
-                                        ))}
+                                    <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                                        <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${(gameState.xp / 3) * 100}%` }}></div>
                                     </div>
                                 </div>
                             </div>
@@ -421,24 +365,13 @@
 
                         {view === 'gameover' && (
                             <div className="p-10 text-center space-y-8 py-16">
-                                <div className="space-y-2">
-                                    <h2 className="text-3xl font-black orbitron text-red-500 italic">SYSTEM CRASHED</h2>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Neural link severed</p>
+                                <h2 className="text-3xl font-black orbitron text-red-500">GAME OVER</h2>
+                                <div className="p-10 bg-black/40 rounded-[2.5rem] border border-white/5">
+                                    <p className="text-[10px] text-slate-500 uppercase font-black mb-1">Final Score</p>
+                                    <p className="text-5xl font-black text-white orbitron">{gameState.score}</p>
                                 </div>
-                                <div className="p-10 bg-black/60 rounded-[3rem] border border-blue-500/10 shadow-inner relative overflow-hidden">
-                                    <div className="relative z-10">
-                                        <p className="text-[9px] text-slate-500 uppercase font-black mb-1 tracking-widest">Total Credits</p>
-                                        <p className="text-6xl font-black text-white orbitron mb-4 drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]">{gameState.score}</p>
-                                        <div className={`text-xl font-black orbitron ${getRank(gameState.score).c} animate-bounce`}>
-                                            {getRank(gameState.score).r}
-                                        </div>
-                                    </div>
-                                    <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-                                        <div className="w-full h-full bg-[radial-gradient(circle,rgba(59,130,246,0.4)_0%,transparent_70%)]"></div>
-                                    </div>
-                                </div>
-                                <button onClick={() => setView('landing')} className="w-full py-5 bg-white text-black rounded-2xl orbitron font-black active:scale-95 transition-all uppercase tracking-[0.2em] shadow-xl">
-                                    REBOOT SYSTEM
+                                <button onClick={() => window.location.reload()} className="w-full py-5 bg-white text-black rounded-2xl orbitron font-black active:scale-95 transition-all">
+                                    RESTART
                                 </button>
                             </div>
                         )}
