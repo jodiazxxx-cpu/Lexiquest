@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lexiquest Pro - Full Version</title>
+    <title>Lexiquest Pro - Skill Edition</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -29,19 +29,9 @@
         }
 
         .glass-card {
-            background: rgba(15, 23, 42, 0.92);
+            background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(25px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 50px rgba(0,0,0,0.8);
-        }
-
-        /* PERBAIKAN JUDUL: Memastikan benar-benar di tengah */
-        .title-container {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
         }
 
         .neon-blue {
@@ -65,18 +55,22 @@
             100% { transform: translate(-50%, -100px) scale(1); opacity: 0; }
         }
 
+        .skill-ready-pulse {
+            animation: pulse-gold 2s infinite;
+        }
+
+        @keyframes pulse-gold {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
         .shake { animation: shake 0.35s both; }
         @keyframes shake {
             10%, 90% { transform: translate3d(-2px, 0, 0); }
             20%, 80% { transform: translate3d(3px, 0, 0); }
             30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
             40%, 60% { transform: translate3d(5px, 0, 0); }
-        }
-
-        .btn-press {
-            background: white !important;
-            color: black !important;
-            transform: scale(0.92);
         }
     </style>
 </head>
@@ -87,7 +81,6 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // Background Stars Animation
         const initBg = () => {
             const canvas = document.getElementById('bg-canvas');
             if(!canvas) return;
@@ -105,7 +98,6 @@
             animate();
         };
 
-        // Sound Engine
         class SoundEngine {
             constructor() { this.ctx = null; }
             init() { 
@@ -124,21 +116,22 @@
             }
             correct() { this.play(880, 'sine', 0.2); }
             wrong() { this.play(150, 'sawtooth', 0.4, 0.1); }
+            skill() { this.play(440, 'square', 0.1); this.play(660, 'square', 0.2); }
             tick() { this.play(1200, 'sine', 0.05, 0.02); }
         }
 
         const sfx = new SoundEngine();
 
         const HEROES = [
-            { id: 'scholar', name: 'Sage', icon: '🎓', desc: 'Bonus XP +2', color: 'from-blue-600 to-indigo-900' },
-            { id: 'flash', name: 'Volt', icon: '⚡', desc: 'Waktu +5 Detik', color: 'from-amber-500 to-orange-800' },
-            { id: 'tank', name: 'Aegis', icon: '🛡️', desc: 'Nyawa +2 Extra', color: 'from-rose-600 to-red-900' },
+            { id: 'scholar', name: 'Sage', icon: '🎓', skill: '50:50', desc: 'Hapus 2 opsi salah', color: 'from-blue-600 to-indigo-900' },
+            { id: 'flash', name: 'Volt', icon: '⚡', skill: 'Freeze', desc: 'Hentikan waktu 5dtk', color: 'from-amber-500 to-orange-800' },
+            { id: 'tank', name: 'Aegis', icon: '🛡️', skill: 'Shield', desc: 'Kebal 1 kesalahan', color: 'from-rose-600 to-red-900' },
         ];
 
         const WORDS = [
             { id: "Matahari", en: "Sun" }, { id: "Bulan", en: "Moon" }, { id: "Bintang", en: "Star" },
-            { id: "Pohon", en: "Tree" }, { id: "Hujan", en: "Rain" }, { id: "Angin", en: "Wind" },
-            { id: "Lautan", en: "Ocean" }, { id: "Gunung", en: "Mountain" }, { id: "Api", en: "Fire" }
+            { id: "Pohon", en: "Tree" }, { id: "Hujan", en: "Rain" }, { id: "Lautan", en: "Ocean" },
+            { id: "Cerdas", en: "Smart" }, { id: "Berlari", en: "Run" }, { id: "Senang", en: "Happy" }
         ];
 
         const OPTION_THEMES = [
@@ -151,9 +144,10 @@
         function App() {
             const [view, setView] = useState('landing');
             const [hero, setHero] = useState(null);
-            const [gameState, setGameState] = useState({ score: 0, lives: 3, lvl: 1, xp: 0 });
+            const [gameState, setGameState] = useState({ score: 0, lives: 3, xp: 0, skillReady: false, shieldActive: false, timeFrozen: false });
             const [currentQ, setCurrentQ] = useState(null);
             const [options, setOptions] = useState([]);
+            const [disabledOptions, setDisabledOptions] = useState([]);
             const [timer, setTimer] = useState(10);
             const [selectedId, setSelectedId] = useState(null);
             const [isShaking, setIsShaking] = useState(false);
@@ -162,22 +156,21 @@
 
             useEffect(() => { initBg(); }, []);
 
-            const spawnText = (text) => {
+            const spawnText = (text, color = "text-emerald-400") => {
                 const id = Date.now();
-                setFloatingTexts(p => [...p, { id, text }]);
+                setFloatingTexts(p => [...p, { id, text, color }]);
                 setTimeout(() => setFloatingTexts(p => p.filter(f => f.id !== id)), 1000);
             };
 
             const startSession = (h) => {
                 sfx.init();
                 setHero(h);
-                const initialLives = h.id === 'tank' ? 5 : 3;
-                setGameState({ score: 0, lives: initialLives, lvl: 1, xp: 0 });
+                setGameState({ score: 0, lives: h.id === 'tank' ? 5 : 3, xp: 0, skillReady: false, shieldActive: false, timeFrozen: false });
                 setView('game');
-                nextTask(1, h);
+                nextTask(h);
             };
 
-            const nextTask = (lvl, curHero) => {
+            const nextTask = (curHero) => {
                 const q = WORDS[Math.floor(Math.random() * WORDS.length)];
                 let opts = [q.en];
                 while(opts.length < 4) {
@@ -186,24 +179,48 @@
                 }
                 setCurrentQ(q);
                 setOptions(opts.sort(() => Math.random() - 0.5));
-                const timeLimit = curHero.id === 'flash' ? 15 : 10;
-                setTimer(timeLimit);
-                startTimer(timeLimit);
+                setDisabledOptions([]);
+                setGameState(prev => ({ ...prev, timeFrozen: false }));
+                const limit = 10;
+                setTimer(limit);
+                startTimer(limit);
             };
 
             const startTimer = (limit) => {
                 if (timerRef.current) clearInterval(timerRef.current);
                 let t = limit;
                 timerRef.current = setInterval(() => {
-                    t -= 0.1;
-                    setTimer(t);
-                    if (t <= 3 && Math.floor(t * 10) % 10 === 0) sfx.tick();
-                    if (t <= 0) { clearInterval(timerRef.current); handleWrong(); }
+                    setGameState(p => {
+                        if (p.timeFrozen) return p;
+                        const nt = t - 0.1;
+                        t = nt;
+                        setTimer(nt);
+                        if (nt <= 3 && Math.floor(nt * 10) % 10 === 0) sfx.tick();
+                        if (nt <= 0) { clearInterval(timerRef.current); handleWrong(); }
+                        return p;
+                    });
                 }, 100);
             };
 
+            const useSkill = () => {
+                if (!gameState.skillReady) return;
+                sfx.skill();
+                setGameState(p => ({ ...p, skillReady: false, xp: 0 }));
+                spawnText("SKILL AKTIF!", "text-amber-400");
+
+                if (hero.id === 'scholar') {
+                    const wrong = options.filter(o => o !== currentQ.en).slice(0, 2);
+                    setDisabledOptions(wrong);
+                } else if (hero.id === 'flash') {
+                    setGameState(p => ({ ...p, timeFrozen: true }));
+                    setTimeout(() => setGameState(p => ({ ...p, timeFrozen: false })), 5000);
+                } else if (hero.id === 'tank') {
+                    setGameState(p => ({ ...p, shieldActive: true }));
+                }
+            };
+
             const handleAnswer = (ans, idx) => {
-                if (selectedId !== null) return;
+                if (selectedId !== null || disabledOptions.includes(ans)) return;
                 setSelectedId(idx);
                 clearInterval(timerRef.current);
 
@@ -211,10 +228,22 @@
                     if (ans === currentQ.en) {
                         sfx.correct();
                         spawnText("+100");
-                        setGameState(p => ({ ...p, score: p.score + 100, xp: p.xp + (hero.id === 'scholar' ? 2 : 1) }));
-                        nextTask(gameState.lvl, hero);
+                        setGameState(p => {
+                            const newXp = p.xp + 1;
+                            const isReady = newXp >= 3;
+                            if (isReady && !p.skillReady) spawnText("SKILL READY!", "text-blue-400");
+                            return { ...p, score: p.score + 100, xp: isReady ? 3 : newXp, skillReady: isReady || p.skillReady };
+                        });
+                        nextTask(hero);
                     } else {
-                        handleWrong();
+                        if (gameState.shieldActive) {
+                            sfx.correct(); // Gunakan suara sukses untuk blokir
+                            spawnText("SHIELD BLOCKED!", "text-rose-400");
+                            setGameState(p => ({ ...p, shieldActive: false }));
+                            nextTask(hero);
+                        } else {
+                            handleWrong();
+                        }
                     }
                     setSelectedId(null);
                 }, 250);
@@ -227,9 +256,9 @@
                 setGameState(p => {
                     const nl = p.lives - 1;
                     if (nl <= 0) setView('gameover');
-                    return { ...p, lives: nl };
+                    return { ...p, lives: nl, xp: 0 };
                 });
-                if (gameState.lives > 1) nextTask(gameState.lvl, hero);
+                if (gameState.lives > 1) nextTask(hero);
             };
 
             return (
@@ -237,37 +266,34 @@
                     <div className="max-w-md w-full glass-card rounded-[2.5rem] overflow-hidden relative shadow-2xl flex flex-col border border-white/10">
                         
                         {floatingTexts.map(f => (
-                            <div key={f.id} className="floating-text orbitron font-black text-emerald-400 text-2xl">
+                            <div key={f.id} className={`floating-text orbitron font-black ${f.color} text-2xl`}>
                                 {f.text}
                             </div>
                         ))}
 
                         {view === 'landing' && (
                             <div className="p-12 text-center space-y-12 py-20">
-                                <div className="space-y-2">
+                                <div className="space-y-2 flex flex-col items-center">
                                     <p className="text-[10px] tracking-[0.6em] text-blue-500 font-bold uppercase opacity-60">Neural Uplink Ready</p>
-                                    <div className="title-container">
-                                        <h1 className="text-5xl font-black orbitron neon-blue leading-tight tracking-tight">
-                                            LEXIQUEST
-                                        </h1>
-                                    </div>
-                                    <div className="h-0.5 w-20 bg-blue-500/30 mx-auto rounded-full mt-2"></div>
+                                    <h1 className="text-5xl font-black orbitron neon-blue leading-tight tracking-tight text-center w-full">
+                                        LEXIQUEST
+                                    </h1>
+                                    <div className="h-0.5 w-20 bg-blue-500/30 rounded-full mt-2"></div>
                                 </div>
                                 <button onClick={() => setView('select')} className="w-full py-5 bg-blue-600 rounded-2xl font-black orbitron tracking-widest active:scale-95 transition-all shadow-lg shadow-blue-900/40">
                                     INISIALISASI
                                 </button>
-                                <p className="text-[9px] text-slate-500 font-mono tracking-widest">ENCRYPTION: AES-256 ACTIVE</p>
                             </div>
                         )}
 
                         {view === 'select' && (
                             <div className="p-8 space-y-4">
-                                <h2 className="orbitron text-center text-lg font-bold mb-4">PILIH AVATAR</h2>
+                                <h2 className="orbitron text-center text-lg font-bold mb-4">PILIH AGENT</h2>
                                 {HEROES.map(h => (
                                     <button key={h.id} onClick={() => startSession(h)} className={`w-full flex items-center p-5 rounded-3xl bg-gradient-to-br ${h.color} border border-white/10 active:scale-95 transition-all shadow-xl group`}>
                                         <span className="text-4xl mr-5 group-hover:scale-110 transition-transform">{h.icon}</span>
                                         <div className="text-left">
-                                            <p className="font-black orbitron text-white">{h.name}</p>
+                                            <p className="font-black orbitron text-white uppercase">{h.name}</p>
                                             <p className="text-[9px] font-bold opacity-70 uppercase tracking-tighter">{h.desc}</p>
                                         </div>
                                     </button>
@@ -276,7 +302,7 @@
                         )}
 
                         {view === 'game' && currentQ && (
-                            <div className="p-8 space-y-8">
+                            <div className="p-8 space-y-6">
                                 <div className="flex justify-between items-center bg-black/40 p-4 rounded-2xl border border-white/5 font-mono text-xs">
                                     <div className="text-left">
                                         <p className="text-slate-500 mb-1 text-[8px] uppercase">Integrity</p>
@@ -292,11 +318,12 @@
                                     </div>
                                 </div>
 
-                                <div className="text-center space-y-4">
+                                <div className="text-center space-y-4 relative">
+                                    {gameState.shieldActive && <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] bg-rose-500 px-2 py-0.5 rounded-full font-bold animate-pulse">🛡️ SHIELD ACTIVE</div>}
                                     <p className="text-[10px] text-blue-500/60 font-black tracking-widest uppercase">Translate Transmission</p>
                                     <h3 className="text-4xl font-black orbitron neon-blue uppercase tracking-tight">{currentQ.id}</h3>
                                     <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                                        <div className={`h-full timer-bar ${timer < 3 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${(timer / (hero.id === 'flash' ? 15 : 10)) * 100}%` }}></div>
+                                        <div className={`h-full timer-bar ${gameState.timeFrozen ? 'bg-cyan-400 animate-pulse' : timer < 3 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${(timer / 10) * 100}%` }}></div>
                                     </div>
                                 </div>
 
@@ -305,17 +332,30 @@
                                         <button 
                                             key={i} 
                                             onClick={() => handleAnswer(opt, i)} 
-                                            className={`py-6 rounded-2xl orbitron text-xs font-bold transition-all border bg-gradient-to-br
-                                                ${selectedId === i ? 'btn-press' : `${OPTION_THEMES[i]}`}
-                                                active:scale-95 shadow-lg uppercase`}
+                                            disabled={disabledOptions.includes(opt)}
+                                            className={`py-6 rounded-2xl orbitron text-xs font-bold transition-all border bg-gradient-to-br uppercase
+                                                ${disabledOptions.includes(opt) ? 'opacity-20 scale-90 grayscale' : selectedId === i ? 'bg-white text-black' : `${OPTION_THEMES[i]}`}
+                                                active:scale-95 shadow-lg`}
                                         >
                                             {opt}
                                         </button>
                                     ))}
                                 </div>
 
-                                <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
-                                    <div className="h-full bg-blue-500 transition-all duration-700" style={{ width: `${(gameState.xp % 10) * 10}%` }}></div>
+                                <div className="space-y-3">
+                                    <button 
+                                        onClick={useSkill}
+                                        disabled={!gameState.skillReady}
+                                        className={`w-full py-4 rounded-xl orbitron font-black text-xs transition-all flex items-center justify-center gap-3
+                                            ${gameState.skillReady ? `bg-gradient-to-r ${hero.color} skill-ready-pulse text-white` : 'bg-slate-900 text-slate-600 border border-white/5 opacity-50'}`}
+                                    >
+                                        <span>{hero.icon}</span>
+                                        <span>{gameState.skillReady ? `SKILL: ${hero.skill}` : 'CHARGING SKILL...'}</span>
+                                    </button>
+
+                                    <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                                        <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${(gameState.xp / 3) * 100}%` }}></div>
+                                    </div>
                                 </div>
                             </div>
                         )}
