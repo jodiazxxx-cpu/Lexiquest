@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lexiquest - Pro Edition Optimized</title>
+    <title>Lexiquest - Elite Edition</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -11,11 +11,6 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Orbitron:wght@400;700;900&display=swap');
         
-        :root {
-            --neon-blue: #3b82f6;
-            --neon-red: #ef4444;
-        }
-
         body { 
             font-family: 'Fira Code', monospace; 
             background-color: #020617; 
@@ -29,51 +24,45 @@
 
         #bg-canvas {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            opacity: 0.4;
-        }
-
-        .neon-text {
-            text-shadow: 0 0 7px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
-            letter-spacing: -0.05em;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; opacity: 0.35;
         }
 
         .glass-card {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
+
+        .neon-blue { text-shadow: 0 0 10px rgba(59, 130, 246, 0.8); }
+        .neon-gold { text-shadow: 0 0 10px rgba(245, 158, 11, 0.8); }
 
         .timer-bar { transition: width 0.1s linear; }
 
-        @keyframes scanline {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
-        }
-
-        .scanline {
+        .floating-text {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 10px;
-            background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.1), transparent);
-            animation: scanline 4s linear infinite;
+            animation: floatUp 1.2s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
             pointer-events: none;
+            z-index: 100;
         }
 
-        .btn-glow:active {
-            box-shadow: 0 0 15px var(--neon-blue);
-            transform: scale(0.95);
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { opacity: 1; transform: translateY(-20px) scale(1.1); }
+            100% { transform: translateY(-80px) scale(1); opacity: 0; }
         }
 
-        .shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+        .skill-ready {
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+
+        .shake { animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake {
             10%, 90% { transform: translate3d(-1px, 0, 0); }
             20%, 80% { transform: translate3d(2px, 0, 0); }
@@ -93,322 +82,336 @@
             const canvas = document.getElementById('bg-canvas');
             const ctx = canvas.getContext('2d');
             let w, h, particles = [];
-
-            const resize = () => {
-                w = canvas.width = window.innerWidth;
-                h = canvas.height = window.innerHeight;
-            };
-
+            const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
             window.addEventListener('resize', resize);
             resize();
-
-            for(let i=0; i<40; i++) {
-                particles.push({
-                    x: Math.random() * w,
-                    y: Math.random() * h,
-                    size: Math.random() * 1.5,
-                    speed: Math.random() * 0.4 + 0.1,
-                    opacity: Math.random()
-                });
-            }
-
+            for(let i=0; i<50; i++) particles.push({ x: Math.random() * w, y: Math.random() * h, size: Math.random() * 2, speed: Math.random() * 0.3 + 0.1, opacity: Math.random() });
             const animate = () => {
                 ctx.clearRect(0, 0, w, h);
-                particles.forEach(p => {
-                    ctx.fillStyle = `rgba(59, 130, 246, ${p.opacity})`;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    ctx.fill();
-                    p.y -= p.speed;
-                    if(p.y < 0) p.y = h;
-                });
+                particles.forEach(p => { ctx.fillStyle = `rgba(59, 130, 246, ${p.opacity})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); p.y -= p.speed; if(p.y < 0) p.y = h; });
                 requestAnimationFrame(animate);
             };
             animate();
         };
 
         class SoundEngine {
-          constructor() { this.ctx = null; }
-          init() {
-            if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            if (this.ctx.state === 'suspended') this.ctx.resume();
-          }
-          play(freq, type, duration, vol = 0.05) {
-            this.init();
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-            gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + duration);
-          }
-          correct() { this.play(880, 'sine', 0.2); }
-          wrong() { this.play(150, 'sawtooth', 0.4, 0.1); }
-          tick() { this.play(1200, 'sine', 0.05, 0.02); }
+            constructor() { this.ctx = null; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); }
+            play(freq, type, duration, vol = 0.05) {
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + duration);
+            }
+            correct() { this.play(880, 'sine', 0.2); }
+            wrong() { this.play(150, 'sawtooth', 0.4, 0.1); }
+            skill() { this.play(440, 'square', 0.1); this.play(660, 'square', 0.2); }
+            tick() { this.play(1200, 'sine', 0.05, 0.02); }
         }
 
         const sfx = new SoundEngine();
 
         const HEROES = [
-          { id: 'scholar', name: 'Scholar', icon: '🎓', skill: 'XP Multiplier', color: 'from-blue-600 to-blue-800', border: 'border-blue-400/50' },
-          { id: 'flash', name: 'Flash', icon: '⚡', skill: 'Time Boost', color: 'from-amber-500 to-orange-700', border: 'border-amber-400/50' },
-          { id: 'tank', name: 'Guardian', icon: '🛡️', skill: 'Life Shield', color: 'from-rose-600 to-red-900', border: 'border-rose-400/50' },
+            { id: 'scholar', name: 'Sage', icon: '🎓', skillName: 'Hapus Opsi', skillDesc: 'Buang 2 opsi salah', color: 'from-blue-600 to-indigo-800' },
+            { id: 'flash', name: 'Volt', icon: '⚡', skillName: 'Freeze', skillDesc: 'Hentikan waktu 5dtk', color: 'from-amber-500 to-yellow-700' },
+            { id: 'tank', name: 'Aegis', icon: '🛡️', skillName: 'Shield', skillDesc: 'Kebal 1 kesalahan', color: 'from-rose-600 to-red-900' },
         ];
 
-        const WORDS_DATABASE = {
-            easy: [
-                { id: "Api", en: "Fire" }, { id: "Air", en: "Water" }, { id: "Bumi", en: "Earth" }, 
-                { id: "Buku", en: "Book" }, { id: "Ikan", en: "Fish" }
-            ],
-            medium: [
-                { id: "Matahari", en: "Sun" }, { id: "Bintang", en: "Star" }, { id: "Gunung", en: "Mountain" },
-                { id: "Hutan", en: "Forest" }, { id: "Sungai", en: "River" }
-            ],
-            hard: [
-                { id: "Pengetahuan", en: "Knowledge" }, { id: "Kemerdekaan", en: "Independence" },
-                { id: "Lingkungan", en: "Environment" }, { id: "Pemerintah", en: "Government" }
-            ]
-        };
+        const RANKS = [
+            { min: 0, name: 'NOVICE', color: 'text-slate-400' },
+            { min: 500, name: 'SPECIALIST', color: 'text-emerald-400' },
+            { min: 1500, name: 'EXPERT', color: 'text-blue-400' },
+            { min: 3000, name: 'ELITE', color: 'text-purple-400' },
+            { min: 5000, name: 'GRANDMASTER', color: 'text-amber-400' },
+        ];
+
+        const WORDS = [
+            { id: "Matahari", en: "Sun" }, { id: "Bulan", en: "Moon" }, { id: "Pohon", en: "Tree" },
+            { id: "Jalan", en: "Road" }, { id: "Mimpi", en: "Dream" }, { id: "Waktu", en: "Time" },
+            { id: "Dunia", en: "World" }, { id: "Kaca", en: "Glass" }, { id: "Hujan", en: "Rain" }
+        ];
 
         function App() {
-          const [view, setView] = useState('landing');
-          const [hero, setHero] = useState(null);
-          const [gameState, setGameState] = useState({ lvl: 1, score: 0, lives: 3, xp: 0, targetXp: 5, combo: 0 });
-          const [currentQ, setCurrentQ] = useState(null);
-          const [options, setOptions] = useState([]);
-          const [timer, setTimer] = useState(10);
-          const [isShaking, setIsShaking] = useState(false);
-          const timerRef = useRef(null);
+            const [view, setView] = useState('landing');
+            const [hero, setHero] = useState(null);
+            const [gameState, setGameState] = useState({ 
+                lvl: 1, score: 0, lives: 3, xp: 0, targetXp: 3, combo: 0, coins: 0, 
+                skillReady: false, shieldActive: false, timeFrozen: false 
+            });
+            const [currentQ, setCurrentQ] = useState(null);
+            const [options, setOptions] = useState([]);
+            const [disabledOptions, setDisabledOptions] = useState([]);
+            const [timer, setTimer] = useState(10);
+            const [isShaking, setIsShaking] = useState(false);
+            const [selectedId, setSelectedId] = useState(null);
+            const [floatingTexts, setFloatingTexts] = useState([]);
+            const timerRef = useRef(null);
 
-          useEffect(() => { initBg(); }, []);
+            useEffect(() => { initBg(); }, []);
 
-          const startSession = (h) => {
-            sfx.init();
-            setHero(h);
-            const initialLives = h.id === 'tank' ? 5 : 3;
-            setGameState({ lvl: 1, score: 0, lives: initialLives, xp: 0, targetXp: 3, combo: 0 });
-            setView('game');
-            generateNewTask(1, h);
-          };
+            const getRank = (score) => {
+                return [...RANKS].reverse().find(r => score >= r.min) || RANKS[0];
+            };
 
-          const generateNewTask = (lvl, curHero) => {
-            let pool = lvl < 3 ? WORDS_DATABASE.easy : lvl < 6 ? WORDS_DATABASE.medium : WORDS_DATABASE.hard;
-            const q = pool[Math.floor(Math.random() * pool.length)];
-            
-            let allWords = [...WORDS_DATABASE.easy, ...WORDS_DATABASE.medium, ...WORDS_DATABASE.hard];
-            let opts = [q.en];
-            while(opts.length < 4) {
-                let r = allWords[Math.floor(Math.random() * allWords.length)].en;
-                if(!opts.includes(r)) opts.push(r);
-            }
+            const spawnFloatText = (text, colorClass = "text-emerald-400") => {
+                const id = Date.now();
+                setFloatingTexts(p => [...p, { id, text, colorClass }]);
+                setTimeout(() => setFloatingTexts(p => p.filter(t => t.id !== id)), 1200);
+            };
 
-            setCurrentQ(q);
-            setOptions(opts.sort(() => Math.random() - 0.5));
-            
-            const baseTime = curHero.id === 'flash' ? 13 : 10;
-            const actualTime = Math.max(3, baseTime - (lvl * 0.4));
-            setTimer(actualTime);
-            startCountdown(actualTime);
-          };
+            const startSession = (h) => {
+                sfx.init();
+                setHero(h);
+                setGameState({ 
+                    lvl: 1, score: 0, lives: h.id === 'tank' ? 5 : 3, 
+                    xp: 0, targetXp: 3, combo: 0, coins: 0, 
+                    skillReady: false, shieldActive: false, timeFrozen: false 
+                });
+                setView('game');
+                generateTask(1);
+            };
 
-          const startCountdown = (limit) => {
-            if (timerRef.current) clearInterval(timerRef.current);
-            let cur = limit;
-            timerRef.current = setInterval(() => {
-                cur -= 0.1;
-                setTimer(cur);
-                if (cur <= 3 && cur > 0) sfx.tick();
-                if (cur <= 0) {
-                    clearInterval(timerRef.current);
-                    handleWrong();
+            const generateTask = (lvl) => {
+                const q = WORDS[Math.floor(Math.random() * WORDS.length)];
+                let opts = [q.en];
+                while(opts.length < 4) {
+                    let r = WORDS[Math.floor(Math.random() * WORDS.length)].en;
+                    if(!opts.includes(r)) opts.push(r);
                 }
-            }, 100);
-          };
-
-          const handleAnswer = (ans) => {
-            clearInterval(timerRef.current);
-            if (ans === currentQ.en) {
-                sfx.correct();
-                const xpGain = hero.id === 'scholar' ? 2 : 1;
-                const newXp = gameState.xp + xpGain;
-                const bonusScore = (gameState.combo * 5);
+                setCurrentQ(q);
+                setOptions(opts.sort(() => Math.random() - 0.5));
+                setDisabledOptions([]);
+                setGameState(p => ({ ...p, timeFrozen: false }));
                 
-                if (newXp >= gameState.targetXp) {
-                    const nextLvl = gameState.lvl + 1;
-                    setGameState(p => ({ ...p, lvl: nextLvl, xp: 0, score: p.score + 100 + bonusScore, targetXp: p.targetXp + 2, combo: p.combo + 1 }));
-                    generateNewTask(nextLvl, hero);
-                } else {
-                    setGameState(p => ({ ...p, xp: newXp, score: p.score + 20 + bonusScore, combo: p.combo + 1 }));
-                    generateNewTask(gameState.lvl, hero);
+                const timeLimit = Math.max(3, 10 - (lvl * 0.3));
+                setTimer(timeLimit);
+                startTimer(timeLimit);
+            };
+
+            const startTimer = (limit) => {
+                if (timerRef.current) clearInterval(timerRef.current);
+                let cur = limit;
+                timerRef.current = setInterval(() => {
+                    setGameState(p => {
+                        if (p.timeFrozen) return p;
+                        cur -= 0.1;
+                        if (cur <= 0) { clearInterval(timerRef.current); handleWrong(); return p; }
+                        setTimer(cur);
+                        if (cur <= 3 && Math.floor(cur * 10) % 10 === 0) sfx.tick();
+                        return p;
+                    });
+                }, 100);
+            };
+
+            const useSkill = () => {
+                if (!gameState.skillReady) return;
+                sfx.skill();
+                setGameState(p => ({ ...p, skillReady: false }));
+                spawnFloatText("SKILL ACTIVATE!", "text-blue-400");
+
+                if (hero.id === 'scholar') {
+                    const wrongOpts = options.filter(o => o !== currentQ.en);
+                    setDisabledOptions(wrongOpts.slice(0, 2));
+                } else if (hero.id === 'flash') {
+                    setGameState(p => ({ ...p, timeFrozen: true }));
+                    setTimeout(() => setGameState(p => ({ ...p, timeFrozen: false })), 5000);
+                } else if (hero.id === 'tank') {
+                    setGameState(p => ({ ...p, shieldActive: true }));
                 }
-            } else {
-                handleWrong();
-            }
-          };
+            };
 
-          const handleWrong = () => {
-            sfx.wrong();
-            setIsShaking(true);
-            setTimeout(() => setIsShaking(false), 300);
-            const nextLives = gameState.lives - 1;
-            if (nextLives <= 0) {
-                setView('gameover');
-            } else {
-                setGameState(p => ({ ...p, lives: nextLives, combo: 0 }));
-                generateNewTask(gameState.lvl, hero);
-            }
-          };
+            const handleAnswer = (ans, idx) => {
+                if (selectedId !== null || disabledOptions.includes(ans)) return;
+                setSelectedId(idx);
+                clearInterval(timerRef.current);
 
-          return (
-            <div className={`min-h-screen flex items-center justify-center p-5 ${isShaking ? 'shake' : ''}`}>
-              <div className="max-w-md w-full glass-card rounded-[2.5rem] overflow-hidden relative border border-white/10 flex flex-col">
-                <div className="scanline"></div>
-                
-                {view === 'landing' && (
-                  <div className="p-10 text-center space-y-10 py-16">
-                    <div className="space-y-1">
-                        <div className="text-blue-400 font-bold text-[10px] tracking-[0.3em] uppercase opacity-70">SYSTEM ONLINE</div>
-                        <h1 className="text-5xl font-black italic text-white orbitron neon-text">
-                            LEXI<span className="text-blue-500">QUEST</span>
-                        </h1>
-                        <div className="w-12 h-1 bg-blue-500/50 mx-auto rounded-full mt-2"></div>
-                    </div>
+                setTimeout(() => {
+                    if (ans === currentQ.en) {
+                        sfx.correct();
+                        const cGain = 10 + gameState.combo;
+                        spawnFloatText(`+${cGain} 🪙`, "text-amber-400");
+                        
+                        setGameState(p => {
+                            let nextXp = p.xp + 1;
+                            let nextLvl = p.lvl;
+                            let nextTarget = p.targetXp;
+                            let skillState = p.skillReady;
 
-                    <div className="bg-black/40 p-5 rounded-2xl border border-white/5 font-mono text-[10px] text-left">
-                        <p className="text-emerald-500/80 mb-1">>> AUTH_SUCCESS</p>
-                        <p className="text-emerald-500/80 mb-1">>> LINK_ESTABLISHED</p>
-                        <p className="text-blue-400 animate-pulse">>> READY_FOR_INPUT_</p>
-                    </div>
+                            if (nextXp >= nextTarget) {
+                                nextLvl++; nextXp = 0; nextTarget += 2;
+                                skillState = true;
+                                spawnFloatText("SKILL READY!", "text-blue-400");
+                            }
 
-                    <button 
-                        onClick={() => setView('select')} 
-                        className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 rounded-2xl font-black text-sm orbitron tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
-                    >
-                      START PROTOCOL
-                    </button>
-                    
-                    <p className="text-[9px] uppercase tracking-widest text-slate-500 font-bold">Ver 2.0 // Neural Engine</p>
-                  </div>
-                )}
+                            return { 
+                                ...p, lvl: nextLvl, xp: nextXp, targetXp: nextTarget,
+                                score: p.score + (20 * nextLvl), coins: p.coins + cGain,
+                                combo: p.combo + 1, skillReady: skillState, shieldActive: false
+                            };
+                        });
+                        generateTask(gameState.lvl);
+                    } else {
+                        if (gameState.shieldActive) {
+                            spawnFloatText("SHIELD BLOCKED!", "text-rose-400");
+                            setGameState(p => ({ ...p, shieldActive: false }));
+                            generateTask(gameState.lvl);
+                        } else {
+                            handleWrong();
+                        }
+                    }
+                    setSelectedId(null);
+                }, 200);
+            };
 
-                {view === 'select' && (
-                  <div className="p-8 space-y-6">
-                    <div className="text-center">
-                        <h2 className="font-bold orbitron text-white text-lg uppercase tracking-tight">Select Agent</h2>
-                        <div className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">Neural Sync Required</div>
-                    </div>
+            const handleWrong = () => {
+                sfx.wrong();
+                setIsShaking(true);
+                setTimeout(() => setIsShaking(false), 300);
+                setGameState(p => {
+                    const nextLives = p.lives - 1;
+                    if (nextLives <= 0) { setView('gameover'); return p; }
+                    return { ...p, lives: nextLives, combo: 0, shieldActive: false };
+                });
+                generateTask(gameState.lvl);
+            };
 
-                    <div className="space-y-3">
-                        {HEROES.map(h => (
-                        <button 
-                            key={h.id} 
-                            onClick={() => startSession(h)} 
-                            className={`w-full flex items-center p-5 rounded-3xl bg-gradient-to-br ${h.color} border border-white/10 active:scale-95 transition-all shadow-xl relative overflow-hidden group`}
-                        >
-                            <span className="text-4xl mr-5 group-hover:scale-110 transition-transform">{h.icon}</span>
-                            <div className="text-left">
-                                <p className="font-black text-lg orbitron tracking-tight">{h.name}</p>
-                                <p className="text-[9px] uppercase font-bold opacity-70 bg-black/20 px-2 py-0.5 rounded-md inline-block mt-0.5">{h.skill}</p>
+            return (
+                <div className={`min-h-screen flex items-center justify-center p-4 ${isShaking ? 'shake' : ''}`}>
+                    <div className="max-w-md w-full glass-card rounded-[2.5rem] overflow-hidden relative shadow-2xl flex flex-col border border-white/5">
+                        
+                        {floatingTexts.map(f => (
+                            <div key={f.id} className={`floating-text font-black orbitron ${f.colorClass}`} style={{ left: '50%', top: '45%', transform: 'translateX(-50%)' }}>
+                                {f.text}
                             </div>
-                        </button>
                         ))}
-                    </div>
-                  </div>
-                )}
 
-                {view === 'game' && currentQ && (
-                  <div className="p-8 space-y-8">
-                    <div className="flex justify-between items-center bg-black/40 p-4 rounded-2xl border border-white/5">
-                      <div className="text-center">
-                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-0.5">Lvl</p>
-                        <p className="text-blue-400 font-black text-lg orbitron">{gameState.lvl}</p>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1.5">Vitality</p>
-                        <div className="flex gap-1">
-                            {Array.from({length: hero.id === 'tank' ? 5 : 3}).map((_, i) => (
-                            <div key={i} className={`w-2 h-2 rounded-full ${i < gameState.lives ? "bg-red-500 shadow-[0_0_5px_#ef4444]" : "bg-slate-800"}`}></div>
-                            ))}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-0.5">Score</p>
-                        <p className="text-emerald-400 font-black text-lg orbitron">{gameState.score}</p>
-                      </div>
-                    </div>
+                        {view === 'landing' && (
+                            <div className="p-12 text-center space-y-10">
+                                <div className="space-y-2">
+                                    <p className="text-[10px] tracking-[0.4em] text-blue-500 font-bold">NEURAL_INTERFACE_v4</p>
+                                    <h1 className="text-5xl font-black italic orbitron neon-blue">LEXI<span className="text-blue-500">QUEST</span></h1>
+                                </div>
+                                <button onClick={() => setView('select')} className="w-full py-5 bg-blue-600 rounded-2xl font-black orbitron tracking-widest active:scale-95 shadow-lg shadow-blue-900/40">
+                                    INITIALIZE
+                                </button>
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Global Ranking System Active</p>
+                            </div>
+                        )}
 
-                    <div className="text-center relative py-4">
-                      {gameState.combo > 1 && (
-                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-amber-400 font-black text-[10px] italic animate-bounce bg-black/50 px-3 py-1 rounded-full border border-amber-500/30">
-                           COMBO X{gameState.combo}
-                        </div>
-                      )}
-                      <div className="text-[9px] text-blue-500/60 mb-1 uppercase font-black tracking-widest">Identify</div>
-                      <h3 className="text-4xl font-black mb-6 text-white tracking-tight orbitron neon-text">{currentQ.id}</h3>
-                      
-                      <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-white/5">
-                        <div 
-                          className={`h-full timer-bar ${timer < 3 ? 'bg-red-500 shadow-[0_0_10px_#ef4444]' : 'bg-blue-500 shadow-[0_0_10px_#3b82f6]'}`} 
-                          style={{ width: `${(timer / (hero.id === 'flash' ? 13 : 10)) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
+                        {view === 'select' && (
+                            <div className="p-8 space-y-4">
+                                <h2 className="orbitron text-center text-lg font-bold mb-4">PILIH AGENT</h2>
+                                {HEROES.map(h => (
+                                    <button key={h.id} onClick={() => startSession(h)} className={`w-full flex items-center p-5 rounded-3xl bg-gradient-to-br ${h.color} border border-white/10 active:scale-95 transition-all shadow-xl group`}>
+                                        <span className="text-4xl mr-5 group-hover:scale-110 transition-transform">{h.icon}</span>
+                                        <div className="text-left">
+                                            <p className="font-black orbitron">{h.name}</p>
+                                            <p className="text-[9px] font-bold opacity-70 uppercase tracking-tighter">{h.skillDesc}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
-                    <div className="grid grid-cols-2 gap-3">
-                      {options.map((opt, i) => (
-                        <button 
-                            key={i} 
-                            onClick={() => handleAnswer(opt)} 
-                            className="py-5 bg-slate-800/50 hover:bg-blue-600 border border-white/5 text-white font-bold rounded-2xl transition-all active:scale-90 text-sm orbitron"
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
+                        {view === 'game' && currentQ && (
+                            <div className="p-6 space-y-6">
+                                {/* Top Bar */}
+                                <div className="flex justify-between items-center bg-black/40 p-4 rounded-2xl font-mono text-[10px]">
+                                    <div className="text-left">
+                                        <p className="text-slate-500">RANK</p>
+                                        <p className={`font-black orbitron ${getRank(gameState.score).color}`}>{getRank(gameState.score).name}</p>
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                        <div className="flex gap-1 mb-1">
+                                            {[...Array(gameState.lives)].map((_, i) => <div key={i} className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_5px_red]"></div>)}
+                                        </div>
+                                        <p className="text-amber-400 font-bold">{gameState.coins} 🪙</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-slate-500">SCORE</p>
+                                        <p className="font-black orbitron text-emerald-400">{gameState.score}</p>
+                                    </div>
+                                </div>
 
-                    <div className="space-y-2 pt-2">
-                        <div className="flex justify-between text-[8px] font-black uppercase text-slate-500 tracking-widest px-1">
-                            <span>Neural Progress</span>
-                            <span className="text-blue-400">{gameState.xp}/{gameState.targetXp}</span>
-                        </div>
-                        <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-700" style={{ width: `${(gameState.xp/gameState.targetXp)*100}%` }}></div>
-                        </div>
-                    </div>
-                  </div>
-                )}
+                                {/* Question Area */}
+                                <div className="text-center space-y-4 relative">
+                                    {gameState.shieldActive && <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] bg-rose-500 px-2 py-0.5 rounded-full font-bold animate-pulse">SHIELD ACTIVE</div>}
+                                    <p className="text-[10px] text-blue-500/50 font-black tracking-[0.3em] uppercase">Decode Target</p>
+                                    <h3 className="text-4xl font-black orbitron neon-blue uppercase">{currentQ.id}</h3>
+                                    
+                                    <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                                        <div className={`h-full timer-bar ${gameState.timeFrozen ? 'bg-cyan-400 animate-pulse' : timer < 3 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${(timer / 10) * 100}%` }}></div>
+                                    </div>
+                                </div>
 
-                {view === 'gameover' && (
-                  <div className="p-12 text-center space-y-10 py-20">
-                    <div className="space-y-1">
-                        <div className="text-red-500 font-black text-[10px] tracking-[0.4em] uppercase">SYSTEM CRITICAL</div>
-                        <h2 className="text-4xl font-black text-white orbitron">GAME OVER</h2>
-                    </div>
+                                {/* Options */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    {options.map((opt, i) => (
+                                        <button 
+                                            key={i} 
+                                            onClick={() => handleAnswer(opt, i)} 
+                                            disabled={disabledOptions.includes(opt)}
+                                            className={`py-5 rounded-2xl orbitron text-xs font-bold transition-all border border-white/5 
+                                                ${disabledOptions.includes(opt) ? 'opacity-20 scale-90' : 'bg-slate-800/40 hover:bg-slate-700'}
+                                                ${selectedId === i ? 'bg-blue-600 scale-95 shadow-[0_0_20px_rgba(59,130,246,0.5)]' : ''}`}
+                                        >
+                                            {opt}
+                                        </button>
+                                    ))}
+                                </div>
 
-                    <div className="py-10 bg-black/40 rounded-[2.5rem] border border-white/10">
-                        <p className="text-[9px] text-slate-500 mb-1 uppercase font-black tracking-widest">Final Intelligence Score</p>
-                        <p className="text-6xl font-black text-amber-500 orbitron tracking-tighter shadow-amber-500/20">{gameState.score}</p>
-                    </div>
+                                {/* Bottom UI: Skill Button & Progress */}
+                                <div className="space-y-4">
+                                    <button 
+                                        onClick={useSkill}
+                                        disabled={!gameState.skillReady}
+                                        className={`w-full py-4 rounded-2xl orbitron font-black text-xs transition-all flex items-center justify-center gap-3
+                                            ${gameState.skillReady ? `bg-gradient-to-r ${hero.color} skill-ready` : 'bg-slate-900 text-slate-600'}`}
+                                    >
+                                        <span>{hero.icon}</span>
+                                        <span>{gameState.skillReady ? `SKILL: ${hero.skillName}` : 'CHARGING SKILL...'}</span>
+                                    </button>
 
-                    <button 
-                        onClick={() => setView('landing')} 
-                        className="w-full py-5 bg-white text-black font-black rounded-2xl hover:bg-blue-500 hover:text-white transition-all orbitron text-xs tracking-widest active:scale-95"
-                    >
-                      REBOOT SYSTEM
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-[8px] font-bold text-slate-500 tracking-widest px-1">
+                                            <span>COMBO x{gameState.combo}</span>
+                                            <span>LVL {gameState.lvl} XP: {gameState.xp}/{gameState.targetXp}</span>
+                                        </div>
+                                        <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
+                                            <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${(gameState.xp/gameState.targetXp)*100}%` }}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'gameover' && (
+                            <div className="p-12 text-center space-y-8">
+                                <div className="space-y-1">
+                                    <p className="text-red-500 orbitron text-xs animate-pulse">CONNECTION_LOST</p>
+                                    <h2 className="text-4xl font-black orbitron">GAME OVER</h2>
+                                </div>
+                                <div className="p-8 bg-black/40 rounded-[2rem] border border-white/10">
+                                    <p className="text-[10px] text-slate-500 uppercase font-black mb-1">Final Rank</p>
+                                    <p className={`text-2xl font-black orbitron mb-4 ${getRank(gameState.score).color}`}>{getRank(gameState.score).name}</p>
+                                    <p className="text-6xl font-black text-amber-500 orbitron">{gameState.score}</p>
+                                </div>
+                                <button onClick={() => setView('landing')} className="w-full py-5 bg-white text-black rounded-2xl orbitron font-black active:scale-95 transition-all">
+                                    RECONNECT
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
 </body>
-    </html>
+</html>
