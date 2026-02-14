@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lexiquest Pro - Skill Edition</title>
+    <title>Lexiquest Pro - Ultimate Edition</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -13,7 +13,7 @@
         
         body { 
             font-family: 'Fira Code', monospace; 
-            background-color: #020617; 
+            background-color: #050a18; 
             color: white; 
             overflow: hidden; 
             margin: 0;
@@ -25,17 +25,31 @@
         #bg-canvas {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1; opacity: 0.35;
+            z-index: -1; opacity: 0.4;
         }
 
         .glass-card {
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(13, 20, 38, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            width: 90%;
+            max-width: 380px;
         }
 
-        .neon-blue {
-            text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
+        /* PERBAIKAN TEKS TERPOTONG */
+        .neon-title {
+            font-size: clamp(2rem, 10vw, 3.5rem); /* Mengecil otomatis di layar kecil */
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.3);
+            white-space: nowrap; /* Menjaga satu baris */
+            line-height: 1.2;
+        }
+
+        .italic-style {
+            font-style: italic;
         }
 
         .timer-bar { transition: width 0.1s linear; }
@@ -72,6 +86,13 @@
             30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
             40%, 60% { transform: translate3d(5px, 0, 0); }
         }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+            transition: all 0.2s;
+        }
+        .btn-primary:active { transform: scale(0.96); opacity: 0.9; }
     </style>
 </head>
 <body>
@@ -134,13 +155,6 @@
             { id: "Cerdas", en: "Smart" }, { id: "Berlari", en: "Run" }, { id: "Senang", en: "Happy" }
         ];
 
-        const OPTION_THEMES = [
-            "from-blue-600/30 to-blue-900/60 border-blue-500/30",
-            "from-purple-600/30 to-purple-900/60 border-purple-500/30",
-            "from-emerald-600/30 to-emerald-900/60 border-emerald-500/30",
-            "from-orange-600/30 to-orange-900/60 border-orange-500/30"
-        ];
-
         function App() {
             const [view, setView] = useState('landing');
             const [hero, setHero] = useState(null);
@@ -181,9 +195,8 @@
                 setOptions(opts.sort(() => Math.random() - 0.5));
                 setDisabledOptions([]);
                 setGameState(prev => ({ ...prev, timeFrozen: false }));
-                const limit = 10;
-                setTimer(limit);
-                startTimer(limit);
+                setTimer(10);
+                startTimer(10);
             };
 
             const startTimer = (limit) => {
@@ -237,7 +250,7 @@
                         nextTask(hero);
                     } else {
                         if (gameState.shieldActive) {
-                            sfx.correct(); // Gunakan suara sukses untuk blokir
+                            sfx.correct();
                             spawnText("SHIELD BLOCKED!", "text-rose-400");
                             setGameState(p => ({ ...p, shieldActive: false }));
                             nextTask(hero);
@@ -263,7 +276,7 @@
 
             return (
                 <div className={`min-h-screen flex items-center justify-center p-4 ${isShaking ? 'shake' : ''}`}>
-                    <div className="max-w-md w-full glass-card rounded-[2.5rem] overflow-hidden relative shadow-2xl flex flex-col border border-white/10">
+                    <div className="glass-card rounded-[2.5rem] overflow-hidden relative shadow-2xl flex flex-col border border-white/10 p-1">
                         
                         {floatingTexts.map(f => (
                             <div key={f.id} className={`floating-text orbitron font-black ${f.color} text-2xl`}>
@@ -272,28 +285,38 @@
                         ))}
 
                         {view === 'landing' && (
-                            <div className="p-12 text-center space-y-12 py-20">
-                                <div className="space-y-2 flex flex-col items-center">
-                                    <p className="text-[10px] tracking-[0.6em] text-blue-500 font-bold uppercase opacity-60">Neural Uplink Ready</p>
-                                    <h1 className="text-5xl font-black orbitron neon-blue leading-tight tracking-tight text-center w-full">
-                                        LEXIQUEST
+                            <div className="p-10 text-center space-y-12 flex flex-col items-center">
+                                <div className="space-y-4">
+                                    <p className="text-[10px] tracking-[0.4em] text-blue-400 font-bold uppercase opacity-80">NEURAL UPLINK READY</p>
+                                    <h1 className="orbitron neon-title italic-style">
+                                        LEXI<span className="text-blue-500">QUEST</span>
                                     </h1>
-                                    <div className="h-0.5 w-20 bg-blue-500/30 rounded-full mt-2"></div>
+                                    <div className="h-0.5 w-16 bg-blue-500/40 rounded-full mx-auto"></div>
+                                    <p className="text-[9px] text-slate-500 tracking-[0.2em] font-bold">ULTIMATE PRO EDITION</p>
                                 </div>
-                                <button onClick={() => setView('select')} className="w-full py-5 bg-blue-600 rounded-2xl font-black orbitron tracking-widest active:scale-95 transition-all shadow-lg shadow-blue-900/40">
-                                    INISIALISASI
-                                </button>
+
+                                <div className="w-full space-y-4 pt-4">
+                                    <div className="text-[9px] font-mono text-emerald-500/70 text-left space-y-1 bg-black/30 p-4 rounded-xl border border-white/5">
+                                        <p>&gt; AUTHENTICATING...</p>
+                                        <p>&gt; ACCESS GRANTED</p>
+                                        <p>&gt; WAITING FOR PROTOCOL_</p>
+                                    </div>
+                                    <button onClick={() => setView('select')} className="w-full py-5 btn-primary rounded-2xl font-black orbitron text-sm tracking-widest uppercase">
+                                        START PROTOCOL
+                                    </button>
+                                </div>
+                                <p className="text-[8px] text-slate-600 font-bold tracking-tighter">VER 2.5 // NEURAL LINK ACTIVE</p>
                             </div>
                         )}
 
                         {view === 'select' && (
                             <div className="p-8 space-y-4">
-                                <h2 className="orbitron text-center text-lg font-bold mb-4">PILIH AGENT</h2>
+                                <h2 className="orbitron text-center text-sm tracking-widest font-bold mb-4 text-blue-400 uppercase">Pilih Agent</h2>
                                 {HEROES.map(h => (
                                     <button key={h.id} onClick={() => startSession(h)} className={`w-full flex items-center p-5 rounded-3xl bg-gradient-to-br ${h.color} border border-white/10 active:scale-95 transition-all shadow-xl group`}>
                                         <span className="text-4xl mr-5 group-hover:scale-110 transition-transform">{h.icon}</span>
                                         <div className="text-left">
-                                            <p className="font-black orbitron text-white uppercase">{h.name}</p>
+                                            <p className="font-black orbitron text-white uppercase text-sm">{h.name}</p>
                                             <p className="text-[9px] font-bold opacity-70 uppercase tracking-tighter">{h.desc}</p>
                                         </div>
                                     </button>
@@ -305,7 +328,7 @@
                             <div className="p-8 space-y-6">
                                 <div className="flex justify-between items-center bg-black/40 p-4 rounded-2xl border border-white/5 font-mono text-xs">
                                     <div className="text-left">
-                                        <p className="text-slate-500 mb-1 text-[8px] uppercase">Integrity</p>
+                                        <p className="text-slate-500 mb-1 text-[8px] uppercase font-bold">Integrity</p>
                                         <div className="flex gap-1">
                                             {[...Array(hero.id === 'tank' ? 5 : 3)].map((_, i) => (
                                                 <div key={i} className={`w-2.5 h-2.5 rounded-full ${i < gameState.lives ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-slate-800'}`}></div>
@@ -313,13 +336,13 @@
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-slate-500 mb-1 text-[8px] uppercase">Credits</p>
+                                        <p className="text-slate-500 mb-1 text-[8px] uppercase font-bold">Credits</p>
                                         <p className="font-black orbitron text-emerald-400 text-base">{gameState.score}</p>
                                     </div>
                                 </div>
 
                                 <div className="text-center space-y-4 relative">
-                                    {gameState.shieldActive && <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] bg-rose-500 px-2 py-0.5 rounded-full font-bold animate-pulse">🛡️ SHIELD ACTIVE</div>}
+                                    {gameState.shieldActive && <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] bg-rose-500 px-3 py-0.5 rounded-full font-bold animate-bounce shadow-lg shadow-rose-900/40">🛡️ SHIELD ACTIVE</div>}
                                     <p className="text-[10px] text-blue-500/60 font-black tracking-widest uppercase">Translate Transmission</p>
                                     <h3 className="text-4xl font-black orbitron neon-blue uppercase tracking-tight">{currentQ.id}</h3>
                                     <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
@@ -333,8 +356,8 @@
                                             key={i} 
                                             onClick={() => handleAnswer(opt, i)} 
                                             disabled={disabledOptions.includes(opt)}
-                                            className={`py-6 rounded-2xl orbitron text-xs font-bold transition-all border bg-gradient-to-br uppercase
-                                                ${disabledOptions.includes(opt) ? 'opacity-20 scale-90 grayscale' : selectedId === i ? 'bg-white text-black' : `${OPTION_THEMES[i]}`}
+                                            className={`py-6 rounded-2xl orbitron text-xs font-bold transition-all border uppercase
+                                                ${disabledOptions.includes(opt) ? 'opacity-10 scale-90' : selectedId === i ? 'bg-white text-black border-white' : 'bg-slate-900/50 border-white/10 hover:border-white/30 text-white'}
                                                 active:scale-95 shadow-lg`}
                                         >
                                             {opt}
@@ -342,19 +365,19 @@
                                     ))}
                                 </div>
 
-                                <div className="space-y-3">
+                                <div className="space-y-3 pt-2">
                                     <button 
                                         onClick={useSkill}
                                         disabled={!gameState.skillReady}
-                                        className={`w-full py-4 rounded-xl orbitron font-black text-xs transition-all flex items-center justify-center gap-3
+                                        className={`w-full py-4 rounded-2xl orbitron font-black text-xs transition-all flex items-center justify-center gap-3
                                             ${gameState.skillReady ? `bg-gradient-to-r ${hero.color} skill-ready-pulse text-white` : 'bg-slate-900 text-slate-600 border border-white/5 opacity-50'}`}
                                     >
                                         <span>{hero.icon}</span>
                                         <span>{gameState.skillReady ? `SKILL: ${hero.skill}` : 'CHARGING SKILL...'}</span>
                                     </button>
 
-                                    <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                                        <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${(gameState.xp / 3) * 100}%` }}></div>
+                                    <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
+                                        <div className="h-full bg-amber-500 transition-all duration-500 shadow-[0_0_10px_orange]" style={{ width: `${(gameState.xp / 3) * 100}%` }}></div>
                                     </div>
                                 </div>
                             </div>
@@ -362,13 +385,13 @@
 
                         {view === 'gameover' && (
                             <div className="p-12 text-center space-y-8 py-16">
-                                <h2 className="text-3xl font-black orbitron text-red-500">SYSTEM FAILURE</h2>
-                                <div className="p-10 bg-black/40 rounded-[2.5rem] border border-white/10">
-                                    <p className="text-[10px] text-slate-500 uppercase font-black mb-2">Final Credits</p>
+                                <h2 className="text-3xl font-black orbitron text-red-500 italic-style">SYSTEM FAILURE</h2>
+                                <div className="p-10 bg-black/60 rounded-[2.5rem] border border-white/5">
+                                    <p className="text-[10px] text-slate-500 uppercase font-black mb-2 tracking-widest">Final Credits</p>
                                     <p className="text-6xl font-black text-amber-500 orbitron">{gameState.score}</p>
                                 </div>
-                                <button onClick={() => setView('landing')} className="w-full py-5 bg-white text-black rounded-2xl orbitron font-black active:scale-95 transition-all">
-                                    REBOOT
+                                <button onClick={() => setView('landing')} className="w-full py-5 bg-white text-black rounded-2xl orbitron font-black active:scale-95 transition-all uppercase tracking-widest">
+                                    REBOOT SYSTEM
                                 </button>
                             </div>
                         )}
